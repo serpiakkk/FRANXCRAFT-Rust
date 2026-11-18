@@ -1379,10 +1379,21 @@ struct Opened {
 fn describe_adapter(adapter: &wgpu::Adapter) {
     let info = adapter.get_info();
     log::info!(
-        "Horizon renderer: {} ({:?}, {:?})",
+        "Horizon renderer: {} ({:?}, {:?}), driver {} {}",
         info.name,
         info.backend,
-        info.device_type
+        info.device_type,
+        info.driver,
+        info.driver_info
+    );
+    let limits = adapter.limits();
+    log::info!(
+        "Horizon renderer: limits: texture2d={}, array_layers={}, bind_groups={}, buffer_size={}; features: {:?}",
+        limits.max_texture_dimension_2d,
+        limits.max_texture_array_layers,
+        limits.max_bind_groups,
+        limits.max_buffer_size,
+        adapter.features()
     );
     crate::telemetry::set_gpu(crate::telemetry::Gpu {
         name: info.name.clone(),
@@ -1446,6 +1457,12 @@ async fn open_device(
     api: GraphicsApi,
     layers: u32,
 ) -> Result<Opened> {
+    // The ICD must be registered before the first wgpu::Instance creates its
+    // ash::Entry. On any failure install() logs and the system driver is used.
+    #[cfg(target_os = "android")]
+    if crate::android_runtime::custom_driver() {
+        wgpu_hal::vulkan::custom_driver::install();
+    }
     // A software adapter (WARP, llvmpipe) is a last resort: a later backend may
     // have the real GPU (#3978: a Fermi GPU with no Vulkan and no DX12 driver
     // still has OpenGL).

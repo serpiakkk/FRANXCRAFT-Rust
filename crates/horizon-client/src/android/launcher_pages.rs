@@ -299,6 +299,7 @@ pub(super) enum Action {
     ChooseInputHost(crate::catalog::InputHost),
     ChooseOrientation(crate::catalog::Orientation),
     ChooseRenderer(crate::catalog::RendererMode),
+    ToggleCustomVulkanDriver,
     ChooseProfile(u32),
     Dismiss,
     Immersive,
@@ -4003,7 +4004,7 @@ impl Launcher {
                 };
                 let game_anim_off = c.disable_game_animations || touch_cfg.disable_game_animations;
 
-                let rows: [(&str, &str, SettingControl<'_>); 17] = [
+                let rows: [(&str, &str, SettingControl<'_>); 18] = [
                     (
                         "DISPLAY, RESOLUTION & RENDERER PIPELINE",
                         "Hardware GPU backend, 3D resolution scale, refresh rate & display geometry",
@@ -4013,6 +4014,14 @@ impl Launcher {
                         "Rendering backend (Vulkan / GLES)",
                         "Hardware GPU driver pipeline used when launching Minecraft",
                         SettingControl::Button(&renderer_str, Action::Renderer, true),
+                    ),
+                    (
+                        "Custom Vulkan driver (PanVK)",
+                        "Load the bundled PanVK ICD instead of the system Vulkan driver; falls back on failure",
+                        SettingControl::Toggle(
+                            c.custom_vulkan_driver,
+                            Action::ToggleCustomVulkanDriver,
+                        ),
                     ),
                     (
                         "Client resolution scale",
@@ -6368,6 +6377,11 @@ impl Launcher {
                 self.catalog.config.renderer = mode;
                 self.catalog.config.save(&self.home)?;
                 self.chooser = None;
+            }
+            Some(Action::ToggleCustomVulkanDriver) => {
+                self.catalog.config.custom_vulkan_driver =
+                    !self.catalog.config.custom_vulkan_driver;
+                self.catalog.config.save(&self.home)?;
             }
             Some(Action::ChooseProfile(profile)) => {
                 std::fs::create_dir_all(if profile == 0 {

@@ -617,6 +617,7 @@ impl Launcher {
                 extra_arguments,
                 open_gl: self.catalog.config.renderer == crate::catalog::RendererMode::OpenGl,
                 gpu_batching: self.catalog.config.renderer == crate::catalog::RendererMode::Vulkan,
+                custom_vulkan_driver: self.catalog.config.custom_vulkan_driver,
             };
             crate::document_store::set_game_active(true);
             let game = match crate::game_launch::start(request) {

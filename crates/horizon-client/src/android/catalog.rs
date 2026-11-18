@@ -66,6 +66,8 @@ pub struct Config {
     #[serde(skip)]
     pub microsoft_client_id: String,
     pub renderer: RendererMode,
+    /// Use the bundled PanVK ICD instead of the system Vulkan driver.
+    pub custom_vulkan_driver: bool,
     pub render_scale: crate::display::RenderScale,
     pub orientation: Orientation,
     #[serde(flatten)]

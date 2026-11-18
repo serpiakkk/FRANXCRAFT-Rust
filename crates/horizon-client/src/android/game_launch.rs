@@ -12,6 +12,7 @@ pub(crate) struct LaunchRequest {
     pub extra_arguments: Vec<String>,
     pub open_gl: bool,
     pub gpu_batching: bool,
+    pub custom_vulkan_driver: bool,
 }
 impl LaunchRequest {
     pub fn arguments(&self) -> Vec<String> {
@@ -54,6 +55,7 @@ pub(crate) fn start(
     std::env::set_current_dir(&request.game_home)?;
     horizon_client::android_runtime::configure_graphics(request.open_gl);
     horizon_client::android_runtime::configure_gpu(request.gpu_batching);
+    horizon_client::android_runtime::configure_custom_driver(request.custom_vulkan_driver);
     crate::game::android_reset_bundled_mods();
     let result = crate::game::android_game(request.arguments());
     if result.is_err() {
@@ -75,6 +77,7 @@ mod tests {
             extra_arguments: vec![],
             open_gl: false,
             gpu_batching: false,
+            custom_vulkan_driver: false,
         }
     }
     #[test]
