@@ -4,6 +4,7 @@ use core::{
     marker::PhantomData,
     slice,
     str::FromStr,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 use std::thread;
 
@@ -170,6 +171,16 @@ impl super::DebugUtilsCreateInfo {
             .user_data(user_data_ptr as *mut _)
             .pfn_user_callback(Some(debug_utils_messenger_callback))
     }
+}
+
+/// ICD entry point registered by the game before the first `wgpu::Instance`.
+/// Null means use the platform loader (`libvulkan.so`), the default.
+static CUSTOM_GET_INSTANCE_PROC_ADDR: AtomicPtr<c_void> = AtomicPtr::new(core::ptr::null_mut());
+
+/// Use a custom Vulkan ICD instead of the platform loader. The caller must keep
+/// the driver library loaded for the lifetime of every `Entry` created here.
+pub fn set_custom_get_instance_proc_addr(function: *mut c_void) {
+    CUSTOM_GET_INSTANCE_PROC_ADDR.store(function, Ordering::Release);
 }
 
 impl super::InstanceShared {
@@ -575,13 +586,21 @@ impl super::Instance {
 
         let entry = unsafe {
             profiling::scope!("Load vk library");
-            // ohos support is already fixed on ash main, but it's unclear when
-            // a new release can happen.
-            #[cfg(target_env = "ohos")]
-            let loaded = ash::Entry::load_from("libvulkan.so");
-            #[cfg(not(target_env = "ohos"))]
-            let loaded = ash::Entry::load();
-            loaded
+            let custom = CUSTOM_GET_INSTANCE_PROC_ADDR.load(Ordering::Acquire);
+            if custom.is_null() {
+                // ohos support is already fixed on ash main, but it's unclear when
+                // a new release can happen.
+                #[cfg(target_env = "ohos")]
+                let loaded = ash::Entry::load_from("libvulkan.so");
+                #[cfg(not(target_env = "ohos"))]
+                let loaded = ash::Entry::load();
+                loaded
+            } else {
+                let get_instance_proc_addr = core::mem::transmute(custom);
+                Ok(ash::Entry::from_static_fn(ash::StaticFn {
+                    get_instance_proc_addr,
+                }))
+            }
         }
         .map_err(|err| {
             crate::InstanceError::with_source(String::from("missing Vulkan entry points"), err)
@@ -636,6 +655,22 @@ impl super::Instance {
                 _phantom: PhantomData,
             });
         }
+
+        // Captured by the game's diagnostic log, so it lands in the Android
+        // diagnostics ZIP without a separate report format.
+        log::info!(
+            "Vulkan instance: api {}.{}.{} (0x{:08x}), custom driver {}, extensions: {}",
+            instance_api_version >> 22,
+            (instance_api_version >> 12) & 0x3ff,
+            instance_api_version & 0xfff,
+            instance_api_version,
+            !CUSTOM_GET_INSTANCE_PROC_ADDR.load(Ordering::Acquire).is_null(),
+            extensions
+                .iter()
+                .map(|extension| extension.to_string_lossy())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
 
         let instance_layers = {
             profiling::scope!("vkEnumerateInstanceLayerProperties");

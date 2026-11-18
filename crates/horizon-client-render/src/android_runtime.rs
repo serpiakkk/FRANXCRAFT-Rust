@@ -174,6 +174,14 @@ pub fn configure_gpu(batching: bool) {
 pub fn gpu_batching() -> bool {
     GPU_BATCHING.load(Ordering::Relaxed)
 }
+/// The launcher's bundled Vulkan ICD toggle. Applied at the next renderer start.
+static CUSTOM_DRIVER: AtomicBool = AtomicBool::new(false);
+pub fn configure_custom_driver(enabled: bool) {
+    CUSTOM_DRIVER.store(enabled, Ordering::Relaxed);
+}
+pub fn custom_driver() -> bool {
+    cfg!(target_os = "android") && CUSTOM_DRIVER.load(Ordering::Relaxed)
+}
 pub fn compatibility() -> bool {
     cfg!(target_os = "android") && !GPU_BATCHING.load(Ordering::Relaxed)
 }

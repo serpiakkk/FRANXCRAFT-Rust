@@ -1819,6 +1819,7 @@ dependencies = [
  "unicode-bidi",
  "ureq",
  "wgpu",
+ "wgpu-hal",
  "winit",
  "zip 9.1.3",
 ]

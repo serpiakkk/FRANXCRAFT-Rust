@@ -26,6 +26,7 @@ Otherwise, we manage a pool of `VkFence` objects behind each `hal::Fence`.
 
 mod adapter;
 mod command;
+pub mod custom_driver;
 pub mod conv;
 mod descriptor;
 mod device;
@@ -34,6 +35,7 @@ mod instance;
 mod sampler;
 mod semaphore_list;
 mod swapchain;
+pub use instance::set_custom_get_instance_proc_addr;
 
 pub use adapter::PhysicalDeviceFeatures;
 
