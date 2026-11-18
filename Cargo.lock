@@ -5349,7 +5349,6 @@ dependencies = [
  "raw-window-handle",
  "raw-window-metal",
  "renderdoc-sys",
- "sha2",
  "smallvec",
  "static_assertions",
  "thiserror 2.0.21",
