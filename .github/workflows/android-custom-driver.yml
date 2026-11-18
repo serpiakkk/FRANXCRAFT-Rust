@@ -1,0 +1,114 @@
+# Build one APK with a caller-supplied PanVK ICD bundled under lib/arm64-v8a.
+# Dispatch-only: the driver is never committed to the repository.
+name: Android custom-driver APK
+run-name: Android custom driver · ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      driver_url:
+        description: 'HTTPS URL of libvulkan_panfrost-android-aarch64.so'
+        type: string
+        required: true
+      driver_sha256:
+        description: 'Expected SHA-256 of the driver (64 hex chars)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+concurrency:
+  group: android-custom-driver-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # The APK is signed with a generated debug key; never expose a real
+    # signing secret to an arbitrary dispatch ref.
+    if: github.ref == 'refs/heads/android'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/ci-target
+      HORIZON_TELEMETRY_URL: 'off'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+
+      - name: Download and verify the custom Vulkan driver
+        env:
+          DRIVER_URL: ${{ inputs.driver_url }}
+          DRIVER_SHA256: ${{ inputs.driver_sha256 }}
+        run: |
+          set -euo pipefail
+          shopt -s nocasematch
+          [[ "$DRIVER_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+            echo 'driver_sha256 must be exactly 64 hex characters' >&2; exit 1; }
+          [[ "$DRIVER_URL" == https://* ]] || {
+            echo 'driver_url must use HTTPS' >&2; exit 1; }
+          mkdir -p third_party/vulkan
+          curl -fsSL --retry 3 --max-time 300 \
+            -o third_party/vulkan/libvulkan_panfrost-android-aarch64.so "$DRIVER_URL"
+          actual=$(sha256sum third_party/vulkan/libvulkan_panfrost-android-aarch64.so | cut -d' ' -f1)
+          test "$actual" = "${DRIVER_SHA256,,}" || {
+            echo "driver hash mismatch: expected ${DRIVER_SHA256,,}, got $actual" >&2; exit 1; }
+          printf '%s\n' "$actual" > third_party/vulkan/driver.sha256
+          echo "Driver verified: $actual"
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          gradle-version: '8.14'
+      - name: Install Android toolchain
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$sdkmanager" ]]; then
+            sdkmanager=$(find "$ANDROID_HOME/cmdline-tools" -type f -path '*/bin/sdkmanager' | sort -V | tail -n 1)
+          fi
+          test -x "$sdkmanager"
+          "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-35' 'build-tools;35.0.0' 'ndk;28.2.13676358'
+          rustup target add aarch64-linux-android
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            .local/ci-target
+          key: android-custom-driver-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            android-custom-driver-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
+
+      - name: Prepare private engine inputs from official downloads
+        run: python3 tools/android_prepare.py --java-home "$JAVA_HOME"
+      - name: Build the APK with the bundled driver
+        run: |
+          python3 tools/android_build.py --abi arm64-v8a --public --profile release \
+            --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME_17_X64" \
+            --gradle "$(command -v gradle)" \
+            --ndk-version 28.2.13676358 --build-tools-version 35.0.0
+      - name: Collect the APK and its hashes
+        run: |
+          mkdir dist
+          cp .local/android/apk/arm64-v8a/horizon-android-public.apk \
+             dist/starling-panvk-arm64-v8a.apk
+          sha256sum dist/starling-panvk-arm64-v8a.apk > dist/SHA256SUMS.txt
+          cp third_party/vulkan/driver.sha256 dist/driver.sha256
+          {
+            echo '### Custom-driver APK'
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo "Driver SHA-256: \`$(cat third_party/vulkan/driver.sha256)\`"
+            echo
+            echo 'Install with root: `su -c "pm install -r /data/local/tmp/starling-panvk-arm64-v8a.apk"`'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: starling-panvk-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

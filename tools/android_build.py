@@ -200,6 +200,20 @@ def main():
             save_crash_symbols(library, staging / name, args.abi,
                                ndk / 'bin' / ('llvm-objcopy' + suffix),
                                environment.get('HORIZON_ANDROID_BUILD_COMMIT', 'unknown'))
+    # Optional bundled PanVK ICD. Gradle maps this directory to lib/<abi>/.
+    # The runtime verifies the same hash before dlopen; fail the build on a
+    # mismatch so a bad driver can never be shipped.
+    driver_dir = ROOT / 'third_party' / 'vulkan'
+    driver = driver_dir / 'libvulkan_panfrost-android-aarch64.so'
+    if driver.is_file():
+        expected = (driver_dir / 'driver.sha256').read_text().split()[0].lower()
+        actual = hashlib.sha256(driver.read_bytes()).hexdigest()
+        if actual != expected:
+            raise SystemExit(f'Custom Vulkan driver hash mismatch: {driver}')
+        shutil.copyfile(driver, staging / driver.name)
+        print(f'Custom Vulkan driver: {driver.name} sha256={actual}', flush=True)
+    elif args.abi == 'arm64-v8a':
+        print('Custom Vulkan driver not bundled; using the system driver', flush=True)
     assets = ROOT / '.local/android/gradle-assets'
     assets.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / 'LICENSE', assets / 'LICENSE.txt')
