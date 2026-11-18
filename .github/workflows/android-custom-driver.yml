@@ -83,6 +83,18 @@ jobs:
           restore-keys: |
             android-custom-driver-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
 
+      # Mojang republished 26.3.json with a new SHA-1. horizon-prepare falls
+      # back to the engine-pinned copy in .local/minecraft/<version>/ when the
+      # freshly downloaded one is not in research-lock.json's accepted list.
+      - name: Seed the pinned Minecraft manifest
+        run: |
+          set -euo pipefail
+          pin=$(python3 -c "import json;print(json.load(open('research-lock.json'))['minecraft']['manifest_sha1'])")
+          mkdir -p .local/minecraft/26.3
+          curl -fsSL --retry 3 --max-time 120 \
+            -o .local/minecraft/26.3/manifest.json \
+            "https://piston-meta.mojang.com/v1/packages/$pin/26.3.json"
+          echo "$pin  .local/minecraft/26.3/manifest.json" | sha1sum -c -
       - name: Prepare private engine inputs from official downloads
         run: python3 tools/android_prepare.py --java-home "$JAVA_HOME"
       - name: Build the APK with the bundled driver
