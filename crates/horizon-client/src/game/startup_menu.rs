@@ -807,7 +807,7 @@ impl Loading {
                         self.settings.shader_options = super::shader_packs::read_shader_options(
                             &name,
                             &profile,
-                            &self.settings.language,
+                            &horizon_client::lang::resolve(&self.settings.language),
                             &horizon_shaders::Macros::standard(),
                         );
                     }

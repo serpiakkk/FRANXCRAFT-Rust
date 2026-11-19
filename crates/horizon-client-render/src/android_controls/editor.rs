@@ -387,29 +387,34 @@ impl TouchControls {
     }
     pub(super) fn draw_editor_toolbar(&self, b: &mut HudBatch, a: &HudAtlas) {
         for (rect, label, on) in [
-            ([0.02, 0.04, 0.105, 0.075], "Done".to_owned(), false),
-            ([0.135, 0.04, 0.105, 0.075], "Cancel".to_owned(), false),
-            ([0.25, 0.04, 0.105, 0.075], "Reset".to_owned(), false),
+            ([0.02, 0.04, 0.105, 0.075], crate::lang::get("Done"), false),
+            (
+                [0.135, 0.04, 0.105, 0.075],
+                crate::lang::get("Cancel"),
+                false,
+            ),
+            ([0.25, 0.04, 0.105, 0.075], crate::lang::get("Reset"), false),
             (
                 [0.365, 0.04, 0.14, 0.075],
-                format!(
-                    "Grid: {}",
-                    if self.settings.snap_to_grid {
+                crate::text::Text::tr(
+                    "Grid: %s",
+                    &[&crate::lang::get(if self.settings.snap_to_grid {
                         "On"
                     } else {
                         "Off"
-                    }
-                ),
+                    })],
+                )
+                .plain(),
                 self.settings.snap_to_grid,
             ),
             (
                 [0.515, 0.04, 0.22, 0.075],
-                format!("Profile: {}", self.settings.active_profile),
+                crate::text::Text::tr("Profile: %s", &[&self.settings.active_profile]).plain(),
                 false,
             ),
             (
                 [0.02, 0.13, 0.335, 0.075],
-                "Add buttons...".to_owned(),
+                crate::lang::get("Add buttons..."),
                 false,
             ),
         ] {
@@ -467,7 +472,7 @@ impl TouchControls {
                 };
                 b.text(
                     a,
-                    &format!("{} {:.0}%", selected.name(), percent),
+                    &format!("{} {:.0}%", selected.name_t(), percent),
                     w * 0.325,
                     h * 0.68,
                     text,
@@ -506,7 +511,7 @@ impl TouchControls {
                     b,
                     a,
                     palette_rect(index),
-                    &format!("{} {}", if shown { "[-]" } else { "[+]" }, control.name()),
+                    &format!("{} {}", if shown { "[-]" } else { "[+]" }, control.name_t()),
                     shown,
                 );
             }
@@ -515,7 +520,7 @@ impl TouchControls {
         if e.error.is_some() {
             b.text(
                 a,
-                "Save failed. Retry Done.",
+                &crate::lang::get("Save failed. Retry Done."),
                 w * 0.33,
                 h * 0.88,
                 rgba(255, 120, 120, 255),
@@ -547,6 +552,9 @@ fn plate(b: &mut HudBatch, a: &HudAtlas, [x, y, w, h]: [f32; 4], label: &str, on
         },
     );
     if let Some((first, second)) = label.split_once(" & ") {
+        // The two halves are translated apart, so the two lines stay two lines.
+        let first = crate::lang::get(first);
+        let second = crate::lang::get(second);
         b.text(
             a,
             &format!("{first} &"),
@@ -557,14 +565,14 @@ fn plate(b: &mut HudBatch, a: &HudAtlas, [x, y, w, h]: [f32; 4], label: &str, on
         );
         b.text(
             a,
-            second,
+            &second,
             x * bw + 3.0,
             y * bh + (h * bh - 20.0) / 2.0 + 10.0,
             rgba(35, 35, 35, 255),
             false,
         );
     } else {
-        let mut display = label.to_owned();
+        let mut display = crate::lang::get(label);
         while HudBatch::text_width(a, &display) > w * bw - 6.0 && !display.is_empty() {
             display.pop();
         }
@@ -855,7 +863,7 @@ impl TouchControls {
             }
             e.key_picker = false;
             e.picker_step = PickerStep::None;
-            e.status_msg = Some(format!("Captured key '{lbl}'."));
+            e.status_msg = Some(crate::text::Text::tr("Captured key '%s'.", &[&lbl]).plain());
             let _ = self.settings.save();
             true
         } else {
@@ -880,7 +888,7 @@ impl TouchControls {
                 b,
                 a,
                 [0.32, 0.54, 0.36, 0.07],
-                &format!("Action: {}", btn.label()),
+                &crate::text::Text::tr("Action: %s", &[&btn.label()]).plain(),
                 false,
             );
             plate(
@@ -915,7 +923,11 @@ impl TouchControls {
                     a,
                     &format!(
                         "{} {:.0}%",
-                        if option == 0 { "Size" } else { "Opacity" },
+                        if option == 0 {
+                            crate::lang::get("Size")
+                        } else {
+                            crate::lang::get("Opacity")
+                        },
                         percent
                     ),
                     w * 0.325,

@@ -22,6 +22,10 @@ impl Mode {
             Self::Dpad => "D-Pad & tap to interact",
         }
     }
+    /// The label in the player's language: the language table's, or the English.
+    pub fn label_t(self) -> String {
+        crate::lang::get(self.label())
+    }
     pub const SCHEMES: [(Self, bool, &str); 4] = [
         (Self::Crosshair, false, "Joystick & aim crosshair"),
         (Self::Tap, false, "Joystick & tap to interact"),
@@ -88,6 +92,10 @@ impl Control {
             Self::Shield => "Raise shield",
         }
     }
+    /// The name in the player's language: the language table's, or the English.
+    pub fn name_t(self) -> String {
+        crate::lang::get(self.name())
+    }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -116,6 +124,18 @@ impl ControlStyle {
             Self::Mcpe => "MCPE Controls",
             Self::GoyControl => "GoyControl Controls",
         }
+    }
+    /// The label in the player's language: the language table's, or the English.
+    pub fn label_t(self) -> String {
+        crate::lang::get(self.label())
+    }
+    /// The subtitle in the player's language: the language table's, or the English.
+    pub fn subtitle_t(self) -> String {
+        crate::lang::get(self.subtitle())
+    }
+    /// The section title in the player's language: the language table's, or the English.
+    pub fn section_title_t(self) -> String {
+        crate::lang::get(self.section_title())
     }
     pub fn storage_subdir(self) -> &'static str {
         match self {
@@ -161,6 +181,10 @@ impl JoystickMoveArea {
             Self::AbsoluteFixed => "Joystick in Absolute Place",
             Self::FollowFinger => "Follow Finger (Floating)",
         }
+    }
+    /// The label in the player's language: the language table's, or the English.
+    pub fn label_t(self) -> String {
+        crate::lang::get(self.label())
     }
     pub fn next(self) -> Self {
         match self {
@@ -453,6 +477,10 @@ impl InputSelection {
             Self::KeyboardMouse => "Keyboard & Mouse",
             Self::Controller => "Controller",
         }
+    }
+    /// The label in the player's language: the language table's, or the English.
+    pub fn label_t(self) -> String {
+        crate::lang::get(self.label())
     }
     pub fn cycle(&mut self, back: bool) {
         let modes = [
@@ -1075,7 +1103,8 @@ impl Settings {
                         parsed.preset_name = stem.to_owned();
                     }
                     if parsed.preset_description.trim().is_empty() {
-                        parsed.preset_description = format!("Saved {} preset", style.label());
+                        parsed.preset_description =
+                            crate::text::Text::tr("Saved %s preset", &[&style.label_t()]).plain();
                     }
                     parsed.sanitize();
                     let _ = parsed.save_to(&target);
@@ -1123,7 +1152,7 @@ impl Settings {
                         parsed.preset_name.trim().to_owned()
                     };
                 let description = if parsed.preset_description.trim().is_empty() {
-                    format!("Custom {} layout", style.label())
+                    crate::text::Text::tr("Custom %s layout", &[&style.label_t()]).plain()
                 } else {
                     parsed.preset_description.trim().to_owned()
                 };
@@ -1207,13 +1236,13 @@ impl Settings {
         let trimmed_name = new_name.trim();
         let display_name =
             if trimmed_name.is_empty() || trimmed_name.eq_ignore_ascii_case("default") {
-                "Custom Copy".to_owned()
+                crate::lang::get("Custom Copy")
             } else {
                 trimmed_name.chars().take(48).collect()
             };
         let trimmed_desc = new_description.trim();
         let display_desc = if trimmed_desc.is_empty() {
-            format!("Copied from {source_id}")
+            crate::text::Text::tr("Copied from %s", &[&source_id]).plain()
         } else {
             trimmed_desc.chars().take(120).collect()
         };
@@ -1254,14 +1283,14 @@ impl Settings {
         if clean == "default" {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::PermissionDenied,
-                "The Default preset is protected and cannot be modified",
+                crate::lang::get("The Default preset is protected and cannot be modified"),
             ));
         }
         let target = Self::system_dir(game_home, style).join(format!("{clean}.json"));
         if !target.is_file() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                "Preset not found",
+                crate::lang::get("Preset not found"),
             ));
         }
         let mut preset = Self::load_from(&target);
@@ -1386,7 +1415,9 @@ impl Settings {
         if self.is_default_preset() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::PermissionDenied,
-                "The Default preset cannot be replaced. Create a new preset instead.",
+                crate::lang::get(
+                    "The Default preset cannot be replaced. Create a new preset instead.",
+                ),
             ));
         }
         Self::ensure_system_storage(game_home, self.control_style);
@@ -1415,20 +1446,20 @@ impl Settings {
         if trimmed_name.is_empty() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "Preset name cannot be empty",
+                crate::lang::get("Preset name cannot be empty"),
             ));
         }
         if trimmed_name.eq_ignore_ascii_case("default") {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::PermissionDenied,
-                "Cannot name a preset Default",
+                crate::lang::get("Cannot name a preset Default"),
             ));
         }
         let style = self.control_style;
         let new_id = Self::allocate_unique_preset_id(game_home, style, trimmed_name);
         let display_name: String = trimmed_name.chars().take(48).collect();
         let display_desc: String = if description.trim().is_empty() {
-            format!("Custom {} preset", style.label())
+            crate::text::Text::tr("Custom %s preset", &[&style.label_t()]).plain()
         } else {
             description.trim().chars().take(120).collect()
         };

@@ -629,8 +629,12 @@ impl Game<'_> {
         if let Some(renderer) = &self.renderer {
             renderer.define_pack_macros(&mut macros);
         }
-        self.settings.shader_options =
-            read_shader_options(&name, &profile, &self.settings.language, &macros);
+        self.settings.shader_options = read_shader_options(
+            &name,
+            &profile,
+            &horizon_client::lang::resolve(&self.settings.language),
+            &macros,
+        );
     }
 
     /// The Shader Options page closed with changes: they are saved, and the pack loads again.

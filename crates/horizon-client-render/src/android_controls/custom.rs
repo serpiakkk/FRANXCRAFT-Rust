@@ -126,8 +126,9 @@ impl CustomButton {
     }
 }
 
+/// The name of a bound key, in the player's language: the language table's, or the English.
 pub fn friendly_token_name(token: &str) -> String {
-    match token {
+    let name: String = match token {
         "" | "key.keyboard.unknown" => "Unassigned".into(),
         "key.mouse.left" => "LMB (Attack)".into(),
         "key.mouse.right" => "RMB (Use)".into(),
@@ -178,7 +179,8 @@ pub fn friendly_token_name(token: &str) -> String {
                 }
             }
         }
-    }
+    };
+    crate::lang::get(&name)
 }
 
 pub fn choices(raw_keys: bool) -> Vec<(String, String)> {

@@ -13,6 +13,13 @@ use std::{
 };
 use winit::{event::TouchPhase, keyboard::KeyCode};
 
+/// A string of the Control Hub: the language table's, or the English text.
+/// The English text is the key (`assets/horizon/lang/<code>.json`), the way the
+/// game's own strings are.
+fn tr(english: &str) -> String {
+    crate::lang::get(english)
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PresetDialogState {
     pub is_copy: bool,
@@ -908,16 +915,16 @@ impl TouchUi {
                 } else {
                     56.
                 };
-            button(b, a, "Keys", right - 56., 3., 56.);
+            button(b, a, &tr("Keys"), right - 56., 3., 56.);
         }
         if menu && !self.goy_mode && self.virtual_mouse_available {
             button(
                 b,
                 a,
-                if self.virtual_mouse {
-                    "Mouse*"
+                &if self.virtual_mouse {
+                    tr("Mouse*")
                 } else {
-                    "Mouse"
+                    tr("Mouse")
                 },
                 b.width - 112.,
                 3.,
@@ -925,11 +932,11 @@ impl TouchUi {
             );
         }
         if menu && !self.goy_mode && crate::android_controls::current_hud_opacity_scale() > 0.01 {
-            button(b, a, "Back", b.width - 53.0, 3.0, 50.0);
+            button(b, a, &tr("Back"), b.width - 53.0, 3.0, 50.0);
             if self.virtual_mouse {
                 let [lmb, rmb] = mouse_button_rects(b.width, b.height);
-                button(b, a, "LMB", lmb.0[0], lmb.0[1], lmb.0[2]);
-                button(b, a, "RMB", rmb.0[0], rmb.0[1], rmb.0[2]);
+                button(b, a, &tr("LMB"), lmb.0[0], lmb.0[1], lmb.0[2]);
+                button(b, a, &tr("RMB"), rmb.0[0], rmb.0[1], rmb.0[2]);
             }
         }
         if !self.expanded {
@@ -946,11 +953,11 @@ impl TouchUi {
             return;
         }
         for (label, x, width) in [
-            ("...", 39.0, 33.0),
-            ("F3", 75.0, 33.0),
-            ("F5", 111.0, 33.0),
-            ("Chat", 147.0, 33.0),
-            ("Keys", 183.0, 39.0),
+            ("...".to_owned(), 39.0, 33.0),
+            ("F3".to_owned(), 75.0, 33.0),
+            ("F5".to_owned(), 111.0, 33.0),
+            (tr("Chat"), 147.0, 33.0),
+            (tr("Keys"), 183.0, 39.0),
         ] {
             button(
                 b,
@@ -958,7 +965,7 @@ impl TouchUi {
                 if label == "F3" && self.key_held(KeyCode::F3) {
                     "F3*"
                 } else {
-                    label
+                    &label
                 },
                 x - if self.hub_visible { 0. } else { 36. },
                 3.0 + self.utility_offset_y,
@@ -1234,18 +1241,24 @@ fn draw_input_picker_modal(
             ui.rounded(dx, dy, dw, dh, 18.0, bg_card);
             ui.border(dx, dy, dw, dh, 18.0, accent);
             let title_str = if for_custom_send {
-                "Send Custom Input — Choose Input Type".to_owned()
+                tr("Send Custom Input — Choose Input Type").to_owned()
             } else if mcpe_exclusive {
-                "MCPE Custom Button — Choose Exclusive Binding".to_owned()
+                tr("MCPE Custom Button — Choose Exclusive Binding").to_owned()
             } else {
-                format!("Assign Event Slot #{} — Choose Input Type", event_slot + 1)
+                crate::text::Text::tr(
+                    "Assign Event Slot #%s — Choose Input Type",
+                    &[&(event_slot + 1)],
+                )
+                .plain()
             };
             let sub_str = if for_custom_send {
-                "Tap any physical key, use System Keyboard, or pick from the PC layout below."
+                tr("Tap any physical key, use System Keyboard, or pick from the PC layout below.")
             } else if mcpe_exclusive {
-                "Exclusive binding: Keyboard OR Mouse (selecting one clears the other)."
+                tr("Exclusive binding: Keyboard OR Mouse (selecting one clears the other).")
             } else {
-                "Each GoyControl button can trigger up to 3 Keyboard or Mouse events simultaneously."
+                tr(
+                    "Each GoyControl button can trigger up to 3 Keyboard or Mouse events simultaneously.",
+                )
             };
             ui.text(
                 Face::SemiBold,
@@ -1255,27 +1268,27 @@ fn draw_input_picker_modal(
                 text_c,
                 &title_str,
             );
-            ui.text(Face::Regular, 10.0, dx + 16.0, dy + 31.0, muted_c, sub_str);
+            ui.text(Face::Regular, 10.0, dx + 16.0, dy + 31.0, muted_c, &sub_str);
             let cw = (dw - 40.0) * 0.5;
             let r_kb = [dx + 16.0, dy + 54.0, cw, 76.0];
             let r_ms = [dx + 24.0 + cw, dy + 54.0, cw, 76.0];
             for (r, title, sub) in [
                 (
                     r_kb,
-                    "Keyboard Key",
+                    tr("Keyboard Key"),
                     if mcpe_exclusive {
-                        "Bind 1 key (clears mouse binding)"
+                        tr("Bind 1 key (clears mouse binding)")
                     } else {
-                        "Full 104-Key horizontal PC keyboard"
+                        tr("Full 104-Key horizontal PC keyboard")
                     },
                 ),
                 (
                     r_ms,
-                    "Mouse & Actions",
+                    tr("Mouse & Actions"),
                     if mcpe_exclusive {
-                        "Bind 1 mouse/action (clears key)"
+                        tr("Bind 1 mouse/action (clears key)")
                     } else {
-                        "LMB, RMB, MMB, Scroll, Look & Actions"
+                        tr("LMB, RMB, MMB, Scroll, Look & Actions")
                     },
                 ),
             ] {
@@ -1286,14 +1299,14 @@ fn draw_input_picker_modal(
                     13.0,
                     [r[0] + 6.0, r[1] + 14.0, r[2] - 12.0, 24.0],
                     text_c,
-                    title,
+                    &title,
                 );
                 ui.centered_fit(
                     Face::Regular,
                     10.0,
                     [r[0] + 6.0, r[1] + 40.0, r[2] - 12.0, 22.0],
                     muted_c,
-                    sub,
+                    &sub,
                 );
             }
             let r_sys = [dx + 16.0, dy + 138.0, dw - 32.0, 34.0];
@@ -1304,13 +1317,13 @@ fn draw_input_picker_modal(
                 10.8,
                 r_sys,
                 accent,
-                "⌨ Type / Capture Key (System / Physical Keyboard)",
+                &tr("⌨ Type / Capture Key (System / Physical Keyboard)"),
             );
             if for_custom_send {
                 let r_can = [dx + 16.0, dy + 180.0, dw - 32.0, 36.0];
                 ui.rounded(r_can[0], r_can[1], r_can[2], r_can[3], 10.0, bg_hi);
                 ui.border(r_can[0], r_can[1], r_can[2], r_can[3], 10.0, border_c);
-                ui.centered_fit(Face::Medium, 11.0, r_can, text_c, "Cancel");
+                ui.centered_fit(Face::Medium, 11.0, r_can, text_c, &tr("Cancel"));
             } else {
                 let r_clr = [dx + 16.0, dy + 180.0, cw, 36.0];
                 let r_can = [dx + 24.0 + cw, dy + 180.0, cw, 36.0];
@@ -1321,11 +1334,11 @@ fn draw_input_picker_modal(
                     11.0,
                     r_clr,
                     danger_c,
-                    "Clear / Unassign Slot",
+                    &tr("Clear / Unassign Slot"),
                 );
                 ui.rounded(r_can[0], r_can[1], r_can[2], r_can[3], 10.0, bg_hi);
                 ui.border(r_can[0], r_can[1], r_can[2], r_can[3], 10.0, border_c);
-                ui.centered_fit(Face::Medium, 11.0, r_can, text_c, "Cancel");
+                ui.centered_fit(Face::Medium, 11.0, r_can, text_c, &tr("Cancel"));
             }
         }
         PickerStep::Keyboard { event_slot } => {
@@ -1337,14 +1350,15 @@ fn draw_input_picker_modal(
             ui.rounded(dx, dy, dw, dh, 18.0, bg_card);
             ui.border(dx, dy, dw, dh, 18.0, accent);
             let title_str = if for_custom_send {
-                "Send Custom Input — Full PC Keyboard (Tap or Swipe)".to_owned()
+                tr("Send Custom Input — Full PC Keyboard (Tap or Swipe)").to_owned()
             } else if mcpe_exclusive {
-                "MCPE Exclusive Keyboard Binding (Clears Mouse)".to_owned()
+                tr("MCPE Exclusive Keyboard Binding (Clears Mouse)").to_owned()
             } else {
-                format!(
-                    "Event Slot #{} — Full PC Keyboard (Tap or Swipe)",
-                    event_slot + 1
+                crate::text::Text::tr(
+                    "Event Slot #%s — Full PC Keyboard (Tap or Swipe)",
+                    &[&(event_slot + 1)],
                 )
+                .plain()
             };
             ui.text_clipped(
                 Face::SemiBold,
@@ -1360,14 +1374,14 @@ fn draw_input_picker_modal(
             let b_right = [dx + dw - 134.0, dy + 8.0, 56.0, 26.0];
             let b_back = [dx + dw - 72.0, dy + 8.0, 58.0, 26.0];
             for (r, lbl) in [
-                (b_ime, "⌨ Sys Key"),
-                (b_left, "◀ Left"),
-                (b_right, "Right ▶"),
-                (b_back, "Back"),
+                (b_ime, "⌨ Sys Key".to_owned()),
+                (b_left, "◀ Left".to_owned()),
+                (b_right, tr("Right ▶")),
+                (b_back, tr("Back")),
             ] {
                 ui.rounded(r[0], r[1], r[2], r[3], 8.0, bg_hi);
                 ui.border(r[0], r[1], r[2], r[3], 8.0, border_c);
-                ui.centered_fit(Face::SemiBold, 10.0, r, text_c, lbl);
+                ui.centered_fit(Face::SemiBold, 10.0, r, text_c, &lbl);
             }
 
             let kb_top = dy + 40.0;
@@ -1413,14 +1427,15 @@ fn draw_input_picker_modal(
             ui.rounded(dx, dy, dw, dh, 18.0, bg_card);
             ui.border(dx, dy, dw, dh, 18.0, accent);
             let title_str = if for_custom_send {
-                "Send Custom Input — Mouse Buttons, Wheel & Actions".to_owned()
+                tr("Send Custom Input — Mouse Buttons, Wheel & Actions").to_owned()
             } else if mcpe_exclusive {
-                "MCPE Exclusive Mouse/Action Binding (Clears Keyboard Binding)".to_owned()
+                tr("MCPE Exclusive Mouse/Action Binding (Clears Keyboard Binding)").to_owned()
             } else {
-                format!(
-                    "Event Slot #{} — Mouse Buttons, Wheel, Look & Actions",
-                    event_slot + 1
+                crate::text::Text::tr(
+                    "Event Slot #%s — Mouse Buttons, Wheel, Look & Actions",
+                    &[&(event_slot + 1)],
                 )
+                .plain()
             };
             ui.text(
                 Face::SemiBold,
@@ -1433,7 +1448,7 @@ fn draw_input_picker_modal(
             let b_back = [dx + dw - 72.0, dy + 8.0, 58.0, 26.0];
             ui.rounded(b_back[0], b_back[1], b_back[2], b_back[3], 8.0, bg_hi);
             ui.border(b_back[0], b_back[1], b_back[2], b_back[3], 8.0, border_c);
-            ui.centered_fit(Face::SemiBold, 10.0, b_back, text_c, "Back");
+            ui.centered_fit(Face::SemiBold, 10.0, b_back, text_c, &tr("Back"));
 
             let cols = 3usize;
             let rows = MOUSE_AND_ACTION_ITEMS.len().div_ceil(cols).max(1);
@@ -1470,7 +1485,7 @@ fn draw_input_picker_modal(
                     9.5,
                     [cx + 3.0, cy, cw - 6.0, ch],
                     if is_mouse { accent } else { text_c },
-                    lbl,
+                    &tr(lbl),
                 );
             }
         }
@@ -2136,12 +2151,13 @@ impl TouchUi {
             let save_r = [mdx + 14.0, mdy + mdh - 38.0, mdw - 28.0, 30.0];
             if inside(save_r) {
                 let name = if dlg.name_input.trim().is_empty() {
-                    "Custom Preset".to_owned()
+                    tr("Custom Preset").to_owned()
                 } else {
                     dlg.name_input.trim().to_owned()
                 };
                 let description = if dlg.desc_input.trim().is_empty() {
-                    format!("Custom {} layout", settings.control_style.label())
+                    crate::text::Text::tr("Custom %s layout", &[&settings.control_style.label_t()])
+                        .plain()
                 } else {
                     dlg.desc_input.trim().to_owned()
                 };
@@ -2190,7 +2206,7 @@ impl TouchUi {
                     self.preset_dialog = Some(PresetDialogState {
                         is_copy: true,
                         target_id: preset.id.clone(),
-                        name_input: format!("{} Copy", preset.name),
+                        name_input: crate::text::Text::tr("%s Copy", &[&preset.name]).plain(),
                         desc_input: preset.description.clone(),
                         editing_desc: false,
                     });
@@ -2790,7 +2806,7 @@ impl TouchUi {
             dx + 52.0,
             dy + 8.0,
             text_c,
-            "Horizon Control Hub",
+            &tr("Horizon Control Hub"),
         );
         ui.text(
             Face::Regular,
@@ -2798,14 +2814,14 @@ impl TouchUi {
             dx + 52.0,
             dy + 25.0,
             muted_c,
-            "Configure touch controls, virtual mouse & feedback",
+            &tr("Configure touch controls, virtual mouse & feedback"),
         );
 
         // Active Control System Pill Badge in Header
         let mode_badge_txt = if settings.control_style == ControlStyle::Mcpe {
-            "MCPE Controls"
+            tr("MCPE Controls")
         } else {
-            "GoyControl HUD"
+            tr("GoyControl HUD")
         };
         let badge_w = 104.0;
         let badge_r = [dx + dw - 188.0, dy + 11.0, badge_w, 26.0];
@@ -2814,41 +2830,55 @@ impl TouchUi {
                 badge_r[0], badge_r[1], badge_r[2], badge_r[3], 8.0, card_sel,
             );
             ui.border(badge_r[0], badge_r[1], badge_r[2], badge_r[3], 8.0, accent);
-            ui.centered_fit(Face::SemiBold, 9.5, badge_r, accent_hi, mode_badge_txt);
+            ui.centered_fit(Face::SemiBold, 9.5, badge_r, accent_hi, &mode_badge_txt);
         }
 
         // "Done" Button in top-right
         let done_r = [dx + dw - 76.0, dy + 10.0, 62.0, 28.0];
         ui.rounded(done_r[0], done_r[1], done_r[2], done_r[3], 9.0, card_bg);
         ui.border(done_r[0], done_r[1], done_r[2], done_r[3], 9.0, border_c);
-        ui.centered_fit(Face::SemiBold, 11.0, done_r, text_c, "Done");
+        ui.centered_fit(Face::SemiBold, 11.0, done_r, text_c, &tr("Done"));
 
         // Left Sidebar Navigation Tabs (Recommended, Controls, Aiming, Buttons, Advanced)
-        let tabs: [(Icon, &str); 5] = [
-            (Icon::HorizonLogo, "Recommended"),
-            (Icon::Gamepad, "Controls"),
-            (Icon::Crosshair, "Aiming"),
-            (Icon::MicrosoftGrid, "Buttons"),
-            (Icon::Flask, "Advanced"),
+        let tabs: [(Icon, String); 5] = [
+            (Icon::HorizonLogo, tr("Recommended")),
+            (Icon::Gamepad, tr("Controls")),
+            (Icon::Crosshair, tr("Aiming")),
+            (Icon::MicrosoftGrid, tr("Buttons")),
+            (Icon::Flask, tr("Advanced")),
         ];
         let tab_start_y = dy + 54.0;
         for (ti, (ic, lbl)) in tabs.into_iter().enumerate() {
             let ty = tab_start_y + ti as f32 * 39.0;
             let active = self.hub_tab == ti as u8;
-            let tr = [dx + 10.0, ty, side_w - 18.0, 34.0];
+            let tab_rect = [dx + 10.0, ty, side_w - 18.0, 34.0];
             if active {
-                ui.rounded(tr[0], tr[1], tr[2], tr[3], 10.0, accent);
-                ui.rounded(tr[0] - 4.0, tr[1] + 7.0, 3.0, 20.0, 1.5, accent_hi);
+                ui.rounded(
+                    tab_rect[0],
+                    tab_rect[1],
+                    tab_rect[2],
+                    tab_rect[3],
+                    10.0,
+                    accent,
+                );
+                ui.rounded(
+                    tab_rect[0] - 4.0,
+                    tab_rect[1] + 7.0,
+                    3.0,
+                    20.0,
+                    1.5,
+                    accent_hi,
+                );
             }
             let fg = if active { text_c } else { muted_c };
-            ui.icon(ic, tr[0] + 9.0, tr[1] + 9.0, 15.0, fg);
+            ui.icon(ic, tab_rect[0] + 9.0, tab_rect[1] + 9.0, 15.0, fg);
             ui.text(
                 if active { Face::SemiBold } else { Face::Medium },
                 10.6,
-                tr[0] + 29.0,
-                tr[1] + 8.0,
+                tab_rect[0] + 29.0,
+                tab_rect[1] + 8.0,
                 fg,
-                lbl,
+                &lbl,
             );
         }
 
@@ -2877,8 +2907,15 @@ impl TouchUi {
             let row_h = 46.0;
             ui.rounded(cx, ry, cw, row_h, 11.0, card_bg);
             ui.border(cx, ry, cw, row_h, 11.0, border_c);
-            ui.text(Face::SemiBold, 11.0, cx + 14.0, ry + 6.0, text_c, title);
-            ui.text(Face::Regular, 9.2, cx + 14.0, ry + 24.0, muted_c, sub);
+            ui.text(
+                Face::SemiBold,
+                11.0,
+                cx + 14.0,
+                ry + 6.0,
+                text_c,
+                &tr(title),
+            );
+            ui.text(Face::Regular, 9.2, cx + 14.0, ry + 24.0, muted_c, &tr(sub));
             if let Some(state) = on {
                 ui.m3_switch(cx + cw - 62.0, ry + 9.0, state);
             } else if let Some(badge) = right_badge {
@@ -2887,7 +2924,13 @@ impl TouchUi {
                 let by = ry + 10.0;
                 ui.rounded(bx, by, bw, 26.0, 8.0, card_sel);
                 ui.border(bx, by, bw, 26.0, 8.0, accent);
-                ui.centered_fit(Face::SemiBold, 10.5, [bx, by, bw, 26.0], accent_hi, badge);
+                ui.centered_fit(
+                    Face::SemiBold,
+                    10.5,
+                    [bx, by, bw, 26.0],
+                    accent_hi,
+                    &tr(badge),
+                );
             } else {
                 ui.text(
                     Face::SemiBold,
@@ -2895,7 +2938,7 @@ impl TouchUi {
                     cx + cw - 20.0,
                     ry + 12.0,
                     accent_hi,
-                    "›",
+                    &tr("›"),
                 );
             }
         };
@@ -2909,7 +2952,7 @@ impl TouchUi {
                     cx,
                     body_y,
                     muted_c,
-                    "REAL-TIME 3D RESOLUTION & PERFORMANCE",
+                    &tr("REAL-TIME 3D RESOLUTION & PERFORMANCE"),
                 );
                 let res_y = body_y + 18.0;
                 ui.rounded(cx, res_y, cw, 78.0, 11.0, card_bg);
@@ -2920,7 +2963,7 @@ impl TouchUi {
                     cx + 14.0,
                     res_y + 6.0,
                     text_c,
-                    "Real-Time 3D Resolution Scale (Zero-Lag)",
+                    &tr("Real-Time 3D Resolution Scale (Zero-Lag)"),
                 );
                 let res_pct = settings.resolution_scale_percent.clamp(25, 100);
                 let res_txt = format!("{res_pct}%");
@@ -2990,7 +3033,7 @@ impl TouchUi {
                     cx,
                     body_y + 102.0,
                     muted_c,
-                    "FAST AIM, VIRTUAL MOUSE & CONTROLS",
+                    &tr("FAST AIM, VIRTUAL MOUSE & CONTROLS"),
                 );
                 let sens_y = body_y + 118.0;
                 ui.rounded(cx, sens_y, cw, 50.0, 11.0, card_bg);
@@ -3001,7 +3044,7 @@ impl TouchUi {
                     cx + 14.0,
                     sens_y + 6.0,
                     text_c,
-                    "Touch Look Sensitivity",
+                    &tr("Touch Look Sensitivity"),
                 );
                 let pct_txt = format!("{:.0}%", settings.sensitivity * 100.0);
                 let pill_w = 48.0;
@@ -3041,8 +3084,8 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 176.0,
-                    "Virtual Mouse Button",
-                    "Off by default; enable for desktop pointer in menus & inventory",
+                    &tr("Virtual Mouse Button"),
+                    &tr("Off by default; enable for desktop pointer in menus & inventory"),
                     Some(settings.virtual_mouse_enabled),
                     None,
                 );
@@ -3050,8 +3093,8 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 230.,
-                    "Keyboard Button",
-                    "Show Keys beside Back; fields still open the keyboard automatically",
+                    &tr("Keyboard Button"),
+                    &tr("Show Keys beside Back; fields still open the keyboard automatically"),
                     Some(settings.keyboard_button),
                     None,
                 );
@@ -3064,7 +3107,7 @@ impl TouchUi {
                     cx + 14.0,
                     spd_y + 6.0,
                     text_c,
-                    "Virtual Mouse Speed",
+                    &tr("Virtual Mouse Speed"),
                 );
                 let spd_pct = format!("{:.0}%", settings.virtual_mouse_sensitivity * 100.0);
                 ui.rounded(
@@ -3107,13 +3150,15 @@ impl TouchUi {
 
                 let act_y = body_y + 342.0;
                 let half_w = (cw - 10.0) * 0.5;
-                let sys_sub = format!("Active: {}", settings.control_style.label());
+                let sys_sub =
+                    crate::text::Text::tr("Active: %s", &[&settings.control_style.label_t()])
+                        .plain();
                 for (i, (ic, title, sub)) in [
-                    (Icon::Gamepad, "Switch Control System", sys_sub.as_str()),
+                    (Icon::Gamepad, tr("Switch Control System"), sys_sub.clone()),
                     (
                         Icon::MicrosoftGrid,
-                        "Customize Controls",
-                        "Open layout & property studio",
+                        tr("Customize Controls"),
+                        tr("Open layout & property studio"),
                     ),
                 ]
                 .into_iter()
@@ -3124,28 +3169,35 @@ impl TouchUi {
                     ui.border(rx, act_y, half_w, 44.0, 11.0, border_c);
                     ui.rounded(rx + 10.0, act_y + 9.0, 26.0, 26.0, 8.0, card_sel);
                     ui.icon(ic, rx + 15.0, act_y + 14.0, 16.0, accent_hi);
-                    ui.text(Face::SemiBold, 10.4, rx + 42.0, act_y + 6.0, text_c, title);
-                    ui.text(Face::Regular, 8.6, rx + 42.0, act_y + 23.0, muted_c, sub);
+                    ui.text(Face::SemiBold, 10.4, rx + 42.0, act_y + 6.0, text_c, &title);
+                    ui.text(Face::Regular, 8.6, rx + 42.0, act_y + 23.0, muted_c, &sub);
                 }
 
                 draw_toggle_row(
                     &mut ui,
                     body_y + 394.0,
-                    "In-Game Animations",
-                    "Animated block textures, view bobbing, FOV transitions & menu motion",
+                    &tr("In-Game Animations"),
+                    &tr("Animated block textures, view bobbing, FOV transitions & menu motion"),
                     Some(!settings.disable_game_animations),
                     None,
                 );
             }
             1 => {
                 // 1. Control Mode Section
-                ui.text(Face::SemiBold, 10.2, cx, body_y, muted_c, "CONTROL MODE");
+                ui.text(
+                    Face::SemiBold,
+                    10.2,
+                    cx,
+                    body_y,
+                    muted_c,
+                    &tr("CONTROL MODE"),
+                );
                 let mode_y = body_y + 18.0;
                 let half_w = (cw - 10.0) * 0.5;
                 let is_mcpe = settings.control_style == ControlStyle::Mcpe;
                 for (i, (title, sub, sel)) in [
-                    ("MCPE (Default)", "Vanilla touch controls", is_mcpe),
-                    ("GoyControl", "Custom layout & keybinds", !is_mcpe),
+                    (tr("MCPE (Default)"), tr("Vanilla touch controls"), is_mcpe),
+                    (tr("GoyControl"), tr("Custom layout & keybinds"), !is_mcpe),
                 ]
                 .into_iter()
                 .enumerate()
@@ -3182,8 +3234,15 @@ impl TouchUi {
                     if sel {
                         ui.rounded(rad_x + 3.5, rad_y + 3.5, 7.0, 7.0, 3.5, accent_hi);
                     }
-                    ui.text(Face::SemiBold, 11.0, rx + 31.0, mode_y + 7.0, text_c, title);
-                    ui.text(Face::Regular, 9.0, rx + 31.0, mode_y + 25.0, muted_c, sub);
+                    ui.text(
+                        Face::SemiBold,
+                        11.0,
+                        rx + 31.0,
+                        mode_y + 7.0,
+                        text_c,
+                        &title,
+                    );
+                    ui.text(Face::Regular, 9.0, rx + 31.0, mode_y + 25.0, muted_c, &sub);
                 }
 
                 // 2. Dynamic System Controls Section
@@ -3196,17 +3255,18 @@ impl TouchUi {
                     settings.control_style.section_title(),
                 );
                 let act_y = body_y + 84.0;
-                let active_preset_lbl = format!("Preset: {}", settings.preset_name);
+                let active_preset_lbl =
+                    crate::text::Text::tr("Preset: %s", &[&settings.preset_name]).plain();
                 for (i, (ic, title, sub)) in [
                     (
                         Icon::MicrosoftGrid,
-                        "Customize Controls",
-                        "Open layout editor",
+                        tr("Customize Controls"),
+                        tr("Open layout editor"),
                     ),
                     (
                         Icon::Settings,
-                        "Control Presets",
-                        active_preset_lbl.as_str(),
+                        tr("Control Presets"),
+                        active_preset_lbl.clone(),
                     ),
                 ]
                 .into_iter()
@@ -3217,15 +3277,15 @@ impl TouchUi {
                     ui.border(rx, act_y, half_w, 44.0, 11.0, border_c);
                     ui.rounded(rx + 10.0, act_y + 9.0, 26.0, 26.0, 8.0, card_sel);
                     ui.icon(ic, rx + 15.0, act_y + 14.0, 16.0, accent_hi);
-                    ui.text(Face::SemiBold, 10.6, rx + 42.0, act_y + 6.0, text_c, title);
-                    ui.text(Face::Regular, 8.8, rx + 42.0, act_y + 23.0, muted_c, sub);
+                    ui.text(Face::SemiBold, 10.6, rx + 42.0, act_y + 6.0, text_c, &title);
+                    ui.text(Face::Regular, 8.8, rx + 42.0, act_y + 23.0, muted_c, &sub);
                     ui.text(
                         Face::SemiBold,
                         13.0,
                         rx + half_w - 14.0,
                         act_y + 12.0,
                         muted_c,
-                        "›",
+                        &tr("›"),
                     );
                 }
 
@@ -3236,7 +3296,7 @@ impl TouchUi {
                     cx,
                     body_y + 132.0,
                     muted_c,
-                    "POINTER, CAMERA & AIM",
+                    &tr("POINTER, CAMERA & AIM"),
                 );
                 let sens_y = body_y + 148.0;
                 ui.rounded(cx, sens_y, cw, 50.0, 11.0, card_bg);
@@ -3247,7 +3307,7 @@ impl TouchUi {
                     cx + 14.0,
                     sens_y + 6.0,
                     text_c,
-                    "Touch Look Sensitivity",
+                    &tr("Touch Look Sensitivity"),
                 );
                 let pct_txt = format!("{:.0}%", settings.sensitivity * 100.0);
                 let pill_w = 48.0;
@@ -3288,24 +3348,24 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 206.0,
-                    "Virtual Mouse Button",
-                    "Windows 11 pointer; auto-shows when MCPE controls are hidden",
+                    &tr("Virtual Mouse Button"),
+                    &tr("Windows 11 pointer; auto-shows when MCPE controls are hidden"),
                     Some(settings.virtual_mouse_enabled),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 260.0,
-                    "Invert Y-Axis",
-                    "Reverse vertical camera look direction",
+                    &tr("Invert Y-Axis"),
+                    &tr("Reverse vertical camera look direction"),
                     Some(settings.invert_y),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 314.0,
-                    "Split Touch (Aim & Look)",
-                    "Use center crosshair instead of tap-anywhere interaction",
+                    &tr("Split Touch (Aim & Look)"),
+                    &tr("Use center crosshair instead of tap-anywhere interaction"),
                     Some(settings.crosshair()),
                     None,
                 );
@@ -3334,31 +3394,32 @@ impl TouchUi {
                     cx,
                     body_y,
                     muted_c,
-                    "AIMING, VIRTUAL MOUSE & GYROSCOPE",
+                    &tr("AIMING, VIRTUAL MOUSE & GYROSCOPE"),
                 );
                 let move_lbl = match settings.mode {
-                    crate::android_controls::Mode::Dpad => "D-Pad + Crosshair/Touch",
-                    crate::android_controls::Mode::Crosshair => "Joystick + Crosshair",
-                    crate::android_controls::Mode::Tap => "Joystick + Tap to Interact",
+                    crate::android_controls::Mode::Dpad => tr("D-Pad + Crosshair/Touch"),
+                    crate::android_controls::Mode::Crosshair => tr("Joystick + Crosshair"),
+                    crate::android_controls::Mode::Tap => tr("Joystick + Tap to Interact"),
                 };
                 let area_lbl = settings.joystick_style.move_area.label();
-                let gyro_spd_lbl = format!(
-                    "Tilt Multiplier ({:.0}%) — Tap left (−) or right (+)",
-                    settings.gyro_sensitivity * 100.0
-                );
+                let gyro_spd_lbl = crate::text::Text::tr(
+                    "Tilt Multiplier (%s%) — Tap left (−) or right (+)",
+                    &[&format!("{:.0}", settings.gyro_sensitivity * 100.0)],
+                )
+                .plain();
                 let step = 54.0;
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0,
-                    "Movement & Aim Mode",
-                    move_lbl,
+                    &tr("Movement & Aim Mode"),
+                    &move_lbl,
                     None,
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step,
-                    "Joystick Active Zone",
+                    &tr("Joystick Active Zone"),
                     area_lbl,
                     None,
                     None,
@@ -3366,8 +3427,8 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step * 2.0,
-                    "Virtual Mouse Button",
-                    "Authoritative toggle for MCPE and GoyControl menus",
+                    &tr("Virtual Mouse Button"),
+                    &tr("Authoritative toggle for MCPE and GoyControl menus"),
                     Some(settings.virtual_mouse_enabled),
                     None,
                 );
@@ -3382,7 +3443,7 @@ impl TouchUi {
                     cx + 14.0,
                     spd_y + 6.0,
                     text_c,
-                    "Virtual Mouse Speed",
+                    &tr("Virtual Mouse Speed"),
                 );
                 let spd_pct = format!("{:.0}%", settings.virtual_mouse_sensitivity * 100.0);
                 let spd_pill_w = 48.0;
@@ -3443,7 +3504,7 @@ impl TouchUi {
                     cx + 14.0,
                     size_y + 6.0,
                     text_c,
-                    "Pointer Size",
+                    &tr("Pointer Size"),
                 );
                 let size_pct = format!("{:.0}%", settings.virtual_mouse_pointer_scale * 100.0);
                 let size_pill_w = 48.0;
@@ -3503,8 +3564,8 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 296.0,
-                    "Gyroscope Aiming",
-                    "Tilt device for fine camera and bow aiming",
+                    &tr("Gyroscope Aiming"),
+                    &tr("Tilt device for fine camera and bow aiming"),
                     Some(settings.gyroscope),
                     None,
                 );
@@ -3518,7 +3579,7 @@ impl TouchUi {
                     cx + 14.0,
                     gyro_y + 6.0,
                     text_c,
-                    "Gyroscope Sensitivity",
+                    &tr("Gyroscope Sensitivity"),
                 );
                 let gyro_pct = format!("{:.0}%", settings.gyro_sensitivity * 100.0);
                 let gyro_pill_w = 48.0;
@@ -3578,16 +3639,16 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 234.,
-                    "Offhand Button",
-                    "Show the swap-hands button",
+                    &tr("Offhand Button"),
+                    &tr("Show the swap-hands button"),
                     Some(settings.offhand_button),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 288.,
-                    "Separate Shield Button",
-                    "Off uses crouching to raise the shield",
+                    &tr("Separate Shield Button"),
+                    &tr("Off uses crouching to raise the shield"),
                     Some(settings.shield_button),
                     None,
                 );
@@ -3598,7 +3659,7 @@ impl TouchUi {
                     cx,
                     body_y,
                     muted_c,
-                    "BUTTON SIZING, HANDEDNESS & BEHAVIOR",
+                    &tr("BUTTON SIZING, HANDEDNESS & BEHAVIOR"),
                 );
                 let step = 54.0;
                 let scale_y = body_y + 18.0;
@@ -3610,7 +3671,7 @@ impl TouchUi {
                     cx + 14.0,
                     scale_y + 6.0,
                     text_c,
-                    "Global Button Scale",
+                    &tr("Global Button Scale"),
                 );
                 let sc_pct = format!("{:.0}%", settings.button_scale * 100.0);
                 let sc_pill_w = 48.0;
@@ -3656,24 +3717,24 @@ impl TouchUi {
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step,
-                    "Left-Handed Layout",
-                    "Mirror movement and action buttons horizontally",
+                    &tr("Left-Handed Layout"),
+                    &tr("Mirror movement and action buttons horizontally"),
                     Some(settings.left_handed),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step * 2.0,
-                    "Toggle Sprint",
-                    "Latch sprint on tap instead of holding",
+                    &tr("Toggle Sprint"),
+                    &tr("Latch sprint on tap instead of holding"),
                     Some(settings.sprint_toggle || settings.toggle_sprint),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step * 3.0,
-                    "Inventory Walk Controls",
-                    "Keep movement controls active while inventory is open",
+                    &tr("Inventory Walk Controls"),
+                    &tr("Keep movement controls active while inventory is open"),
                     Some(settings.inventory_controls),
                     None,
                 );
@@ -3686,7 +3747,7 @@ impl TouchUi {
                     cx,
                     body_y,
                     muted_c,
-                    "FEEDBACK, GAMEPLAY & SHORTCUTS",
+                    &tr("FEEDBACK, GAMEPLAY & SHORTCUTS"),
                 );
                 let step = 54.0;
                 let feedback_width = (cw - 8.0) * 0.5;
@@ -3704,10 +3765,10 @@ impl TouchUi {
                     11.0,
                     [cx, body_y + 18.0, feedback_width, 46.0],
                     text_c,
-                    if settings.ui_vibrate {
-                        "UI vibration: ON"
+                    &if settings.ui_vibrate {
+                        tr("UI vibration: ON")
                     } else {
-                        "UI vibration: OFF"
+                        tr("UI vibration: OFF")
                     },
                 );
                 ui.centered_fit(
@@ -3720,25 +3781,25 @@ impl TouchUi {
                         46.0,
                     ],
                     text_c,
-                    if settings.vibrate {
-                        "Gameplay vibration: ON"
+                    &if settings.vibrate {
+                        tr("Gameplay vibration: ON")
                     } else {
-                        "Gameplay vibration: OFF"
+                        tr("Gameplay vibration: OFF")
                     },
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step,
-                    "Auto-Jump",
-                    "Automatically jump when walking into 1-block ledges",
+                    &tr("Auto-Jump"),
+                    &tr("Automatically jump when walking into 1-block ledges"),
                     Some(settings.auto_jump),
                     None,
                 );
                 draw_toggle_row(
                     &mut ui,
                     body_y + 18.0 + step * 2.0,
-                    "Apply Standard Menu Visibility",
-                    "Reset in-game vs in-menu visibility flags for active system",
+                    &tr("Apply Standard Menu Visibility"),
+                    &tr("Reset in-game vs in-menu visibility flags for active system"),
                     None,
                     None,
                 );
@@ -3748,13 +3809,20 @@ impl TouchUi {
                     cx,
                     body_y + 182.0,
                     muted_c,
-                    "QUICK DESKTOP KEYS & CUSTOM INPUT",
+                    &tr("QUICK DESKTOP KEYS & CUSTOM INPUT"),
                 );
                 let ky = body_y + 198.0;
                 let kw = (cw - 25.0) / 6.0;
-                for (i, lbl) in ["F1", "F3", "F5", "Inv", "Chat", "Keys"]
-                    .into_iter()
-                    .enumerate()
+                for (i, lbl) in [
+                    "F1".to_owned(),
+                    "F3".to_owned(),
+                    "F5".to_owned(),
+                    tr("Inv"),
+                    tr("Chat"),
+                    tr("Keys"),
+                ]
+                .into_iter()
+                .enumerate()
                 {
                     let rx = cx + i as f32 * (kw + 5.0);
                     ui.rounded(rx, ky, kw, 36.0, 9.0, card_bg);
@@ -3764,7 +3832,7 @@ impl TouchUi {
                         10.5,
                         [rx + 2.0, ky, kw - 4.0, 36.0],
                         text_c,
-                        lbl,
+                        &lbl,
                     );
                 }
                 let send_y = body_y + 244.0;
@@ -3777,7 +3845,7 @@ impl TouchUi {
                     cx + 38.0,
                     send_y + 5.0,
                     text_c,
-                    "Send Custom Input (Keyboard / Mouse / Action)",
+                    &tr("Send Custom Input (Keyboard / Mouse / Action)"),
                 );
                 ui.text(
                     Face::Regular,
@@ -3785,7 +3853,7 @@ impl TouchUi {
                     cx + 38.0,
                     send_y + 21.0,
                     muted_c,
-                    "Open 104-key PC keyboard, mouse buttons, scroll wheel & actions",
+                    &tr("Open 104-key PC keyboard, mouse buttons, scroll wheel & actions"),
                 );
                 ui.text(
                     Face::SemiBold,
@@ -3793,7 +3861,7 @@ impl TouchUi {
                     cx + cw - 18.0,
                     send_y + 11.0,
                     accent_hi,
-                    "›",
+                    &tr("›"),
                 );
 
                 let sys_y = body_y + 292.0;
@@ -3812,7 +3880,7 @@ impl TouchUi {
                     10.8,
                     [cx, sys_y, half, 38.0],
                     danger_c,
-                    "Force Kill",
+                    &tr("Force Kill"),
                 );
                 ui.rounded(cx + half + 10.0, sys_y, half, 38.0, 10.0, card_bg);
                 ui.border(cx + half + 10.0, sys_y, half, 38.0, 10.0, border_c);
@@ -3821,7 +3889,7 @@ impl TouchUi {
                     10.8,
                     [cx + half + 10.0, sys_y, half, 38.0],
                     text_c,
-                    "Open Logs",
+                    &tr("Open Logs"),
                 );
             }
         }
@@ -3854,7 +3922,11 @@ impl TouchUi {
                 mdx + 16.0,
                 mdy + 10.0,
                 text_c,
-                &format!("{} — Control Presets", settings.control_style.label()),
+                &crate::text::Text::tr(
+                    "%s — Control Presets",
+                    &[&settings.control_style.label_t()],
+                )
+                .plain(),
             );
             ui.text(
                 Face::Regular,
@@ -3862,15 +3934,16 @@ impl TouchUi {
                 mdx + 16.0,
                 mdy + 27.0,
                 muted_c,
-                &format!(
-                    "Independent presets stored in controls/{}/",
-                    settings.control_style.storage_subdir()
-                ),
+                &crate::text::Text::tr(
+                    "Independent presets stored in controls/%s/",
+                    &[&settings.control_style.storage_subdir()],
+                )
+                .plain(),
             );
             let back_r = [mdx + mdw - 78.0, mdy + 10.0, 64.0, 28.0];
             ui.rounded(back_r[0], back_r[1], back_r[2], back_r[3], 9.0, card_bg);
             ui.border(back_r[0], back_r[1], back_r[2], back_r[3], 9.0, border_c);
-            ui.centered_fit(Face::SemiBold, 10.5, back_r, text_c, "Back");
+            ui.centered_fit(Face::SemiBold, 10.5, back_r, text_c, &tr("Back"));
 
             let list_y = mdy + 48.0;
             let row_h = 46.0;
@@ -3923,7 +3996,7 @@ impl TouchUi {
                     ui.rounded(rx + 3.5, rcy + 3.5, 7.0, 7.0, 3.5, accent_hi);
                 }
                 let title = if preset.is_default {
-                    format!("{} (Protected Default)", preset.name)
+                    crate::text::Text::tr("%s (Protected Default)", &[&preset.name]).plain()
                 } else {
                     preset.name.clone()
                 };
@@ -3973,7 +4046,7 @@ impl TouchUi {
                     copy_r[0] + 24.0,
                     copy_r[1] + 7.0,
                     text_c,
-                    "Copy",
+                    &tr("Copy"),
                 );
             }
         }
@@ -3993,10 +4066,10 @@ impl TouchUi {
                 mdx + 14.0,
                 mdy + 10.0,
                 text_c,
-                if dlg.is_copy {
-                    "Copy Preset Layout — Enter Name & Description"
+                &if dlg.is_copy {
+                    tr("Copy Preset Layout — Enter Name & Description")
                 } else {
-                    "Edit Preset Name & Description"
+                    tr("Edit Preset Name & Description")
                 },
             );
             let cancel_r = [mdx + mdw - 76.0, mdy + 10.0, 64.0, 26.0];
@@ -4016,7 +4089,7 @@ impl TouchUi {
                 8.0,
                 border_c,
             );
-            ui.centered_fit(Face::SemiBold, 10.0, cancel_r, text_c, "Cancel");
+            ui.centered_fit(Face::SemiBold, 10.0, cancel_r, text_c, &tr("Cancel"));
 
             let name_r = [mdx + 14.0, mdy + 42.0, (mdw - 36.0) * 0.45, 48.0];
             let desc_r = [
@@ -4030,9 +4103,9 @@ impl TouchUi {
                 name_r[1],
                 name_r[2],
                 name_r[3],
-                "PRESET NAME",
+                &tr("PRESET NAME"),
                 dlg.name_input.as_str(),
-                "Tap to type",
+                &tr("Tap to type"),
                 !dlg.editing_desc,
             );
             ui.text_field(
@@ -4040,9 +4113,9 @@ impl TouchUi {
                 desc_r[1],
                 desc_r[2],
                 desc_r[3],
-                "DESCRIPTION",
+                &tr("DESCRIPTION"),
                 dlg.desc_input.as_str(),
-                "Tap to type",
+                &tr("Tap to type"),
                 dlg.editing_desc,
             );
 
@@ -4050,7 +4123,7 @@ impl TouchUi {
                 mdx + 14.0,
                 mdy + 104.0,
                 mdw - 28.0,
-                "Tap a field to type; press Enter to close keyboard, then tap Save below.",
+                &tr("Tap a field to type; press Enter to close keyboard, then tap Save below."),
                 muted_c,
             );
 
@@ -4061,10 +4134,10 @@ impl TouchUi {
                 11.0,
                 save_r,
                 text_c,
-                if dlg.is_copy {
-                    "Create Independent Preset Copy"
+                &if dlg.is_copy {
+                    tr("Create Independent Preset Copy")
                 } else {
-                    "Save Preset Details"
+                    tr("Save Preset Details")
                 },
             );
         }
@@ -4111,40 +4184,38 @@ fn clamp_editor_custom_selection(
     }
 }
 
-fn shape_name(shape: u8) -> &'static str {
+fn shape_name(shape: u8) -> String {
     match shape {
-        1 => "Square",
-        2 => "Circle/Pill",
-        3 => "Cut Octagon",
-        4 => "Diamond",
-        5 => "Hexagon",
-        _ => "Rounded",
+        1 => tr("Square"),
+        2 => tr("Circle/Pill"),
+        3 => tr("Cut Octagon"),
+        4 => tr("Diamond"),
+        5 => tr("Hexagon"),
+        _ => tr("Rounded"),
     }
 }
 
-pub fn control_icon_from_id(
-    icon_id: u8,
-) -> Option<(crate::android_control_theme::Icon, &'static str)> {
+pub fn control_icon_from_id(icon_id: u8) -> Option<(crate::android_control_theme::Icon, String)> {
     use crate::android_control_theme::Icon;
     match icon_id {
-        1 => Some((Icon::Crosshair, "Crosshair")),
-        2 => Some((Icon::Gamepad, "Gamepad")),
-        3 => Some((Icon::Play, "Attack")),
-        4 => Some((Icon::Pause, "Pause")),
-        5 => Some((Icon::Settings, "Settings")),
-        6 => Some((Icon::Search, "Zoom")),
-        7 => Some((Icon::Check, "Confirm")),
-        8 => Some((Icon::Monitor, "Camera")),
-        9 => Some((Icon::Flask, "Use/Potion")),
-        10 => Some((Icon::Terminal, "Debug/Cmd")),
-        11 => Some((Icon::MicrosoftGrid, "Inventory")),
-        12 => Some((Icon::Share, "Swap/Drop")),
+        1 => Some((Icon::Crosshair, tr("Crosshair"))),
+        2 => Some((Icon::Gamepad, tr("Gamepad"))),
+        3 => Some((Icon::Play, tr("Attack"))),
+        4 => Some((Icon::Pause, tr("Pause"))),
+        5 => Some((Icon::Settings, tr("Settings"))),
+        6 => Some((Icon::Search, tr("Zoom"))),
+        7 => Some((Icon::Check, tr("Confirm"))),
+        8 => Some((Icon::Monitor, tr("Camera"))),
+        9 => Some((Icon::Flask, tr("Use/Potion"))),
+        10 => Some((Icon::Terminal, tr("Debug/Cmd"))),
+        11 => Some((Icon::MicrosoftGrid, tr("Inventory"))),
+        12 => Some((Icon::Share, tr("Swap/Drop"))),
         _ => None,
     }
 }
 
-pub fn control_icon_label(icon_id: u8) -> &'static str {
-    control_icon_from_id(icon_id).map_or("Text Only", |(_, name)| name)
+pub fn control_icon_label(icon_id: u8) -> String {
+    control_icon_from_id(icon_id).map_or_else(|| tr("Text Only"), |(_, name)| name)
 }
 
 fn draw_button_icon_and_label(
@@ -4486,10 +4557,11 @@ pub fn draw_hud_editor(
                 zx + 10.0,
                 zy + 8.0,
                 accent,
-                &format!(
-                    "Joystick Active Zone: {}",
-                    tc.settings.joystick_style.move_area.label()
-                ),
+                &crate::text::Text::tr(
+                    "Joystick Active Zone: %s",
+                    &[&tc.settings.joystick_style.move_area.label_t()],
+                )
+                .plain(),
             );
         }
     }
@@ -4590,7 +4662,7 @@ pub fn draw_hud_editor(
                 8.0,
                 [rx, ry + rh - 11.0, rw, 10.0],
                 color::hex(0xFBBF24, 220),
-                "HIDDEN",
+                &tr("HIDDEN"),
             );
         }
         if is_sel {
@@ -4646,7 +4718,10 @@ pub fn draw_hud_editor(
         }
 
         if is_sel {
-            selected_rect_and_title = Some(([rx, ry, rw, rh], format!("Button: {label}")));
+            selected_rect_and_title = Some((
+                [rx, ry, rw, rh],
+                crate::text::Text::tr("Button: %s", &[&label]).plain(),
+            ));
         }
     }
 
@@ -4667,7 +4742,7 @@ pub fn draw_hud_editor(
             ui.rounded(hx, hy, hw, hh, 3.0, accent);
             ui.border(hx, hy, hw, hh, 3.0, accent_fg);
         }
-        let tag = format!("{sel_name} (Drag corners/edges to resize)");
+        let tag = crate::text::Text::tr("%s (Drag corners/edges to resize)", &[&sel_name]).plain();
         let tw = (ui.measure(Face::SemiBold, 9.5, &tag) + 12.0).min(w - 16.0);
         let tx = (rx + (rw - tw) * 0.5).clamp(8.0, (w - tw - 8.0).max(8.0));
         let ty = if ry > 24.0 {
@@ -4725,17 +4800,29 @@ pub fn draw_hud_editor(
     );
 
     if ed.pod_expanded {
-        let items: [(Option<Icon>, &str, f32, bool, bool); 5] = [
-            (Some(Icon::Undo), "", 42.0, !ed.undo_stack.is_empty(), false),
-            (Some(Icon::Redo), "", 42.0, !ed.redo_stack.is_empty(), false),
-            (Some(Icon::Gear), "Props", 72.0, true, ed.props_open),
-            (Some(Icon::Plus), "Add", 64.0, true, false),
-            (Some(Icon::Check), "Save", 68.0, true, true),
+        let items: [(Option<Icon>, String, f32, bool, bool); 5] = [
+            (
+                Some(Icon::Undo),
+                "".to_owned(),
+                42.0,
+                !ed.undo_stack.is_empty(),
+                false,
+            ),
+            (
+                Some(Icon::Redo),
+                "".to_owned(),
+                42.0,
+                !ed.redo_stack.is_empty(),
+                false,
+            ),
+            (Some(Icon::Gear), tr("Props"), 72.0, true, ed.props_open),
+            (Some(Icon::Plus), tr("Add"), 64.0, true, false),
+            (Some(Icon::Check), tr("Save"), 68.0, true, true),
         ];
         let mut ix = pod_x + 50.0;
         for (ic, lbl, iw, enabled, hi) in items {
             let r = [ix, pod_y + 5.0, iw, 38.0];
-            let bg = if lbl == "Save" {
+            let bg = if lbl == tr("Save") {
                 accent
             } else if hi {
                 accent_soft
@@ -4749,13 +4836,13 @@ pub fn draw_hud_editor(
                 r[2],
                 r[3],
                 19.0,
-                if hi || lbl == "Save" {
+                if hi || lbl == tr("Save") {
                     accent
                 } else {
                     border_c
                 },
             );
-            let fg = if lbl == "Save" {
+            let fg = if lbl == tr("Save") {
                 accent_fg
             } else if !enabled {
                 color::hex(0x5E5875, 200)
@@ -4769,7 +4856,7 @@ pub fn draw_hud_editor(
                     ui.icon(icon, r[0] + (iw - 18.0) * 0.5, r[1] + 10.0, 18.0, fg);
                 } else {
                     ui.icon(icon, r[0] + 10.0, r[1] + 11.0, 16.0, fg);
-                    ui.text(Face::SemiBold, 11.5, r[0] + 29.0, r[1] + 10.0, fg, lbl);
+                    ui.text(Face::SemiBold, 11.5, r[0] + 29.0, r[1] + 10.0, fg, &lbl);
                 }
             }
             ix += iw + 4.0;
@@ -4811,7 +4898,7 @@ pub fn draw_hud_editor(
             dx + 18.0,
             dy + 16.0,
             text_c,
-            "Unsaved Layout Changes",
+            &tr("Unsaved Layout Changes"),
         );
         ui.text(
             Face::Regular,
@@ -4819,7 +4906,7 @@ pub fn draw_hud_editor(
             dx + 18.0,
             dy + 42.0,
             muted_c,
-            "You have modified your control layout in this session.",
+            &tr("You have modified your control layout in this session."),
         );
         ui.text(
             Face::Regular,
@@ -4827,17 +4914,17 @@ pub fn draw_hud_editor(
             dx + 18.0,
             dy + 60.0,
             muted_c,
-            "Save your changes before leaving, or go back without saving?",
+            &tr("Save your changes before leaving, or go back without saving?"),
         );
         let bw = (dw - 44.0) * 0.5;
         let by = dy + dh - 50.0;
         let save_r = [dx + 18.0, by, bw, 36.0];
         let back_r = [dx + 26.0 + bw, by, bw, 36.0];
         ui.rounded(save_r[0], save_r[1], save_r[2], save_r[3], 10.0, accent);
-        ui.centered_fit(Face::SemiBold, 11.5, save_r, accent_fg, "Save");
+        ui.centered_fit(Face::SemiBold, 11.5, save_r, accent_fg, &tr("Save"));
         ui.rounded(back_r[0], back_r[1], back_r[2], back_r[3], 10.0, bg_hi);
         ui.border(back_r[0], back_r[1], back_r[2], back_r[3], 10.0, danger_c);
-        ui.centered_fit(Face::SemiBold, 11.5, back_r, danger_c, "Back");
+        ui.centered_fit(Face::SemiBold, 11.5, back_r, danger_c, &tr("Back"));
         ui.finish();
         return;
     }
@@ -4884,8 +4971,8 @@ pub fn draw_hud_editor(
         let is_mcpe_mode = tc.settings.control_style == ControlStyle::Mcpe;
         let (header_txt, sub_txt) = if is_joystick {
             (
-                "Joystick & Analog Base Inspector".to_owned(),
-                "Customize stick knob, analog base ring, active zone & visibility",
+                tr("Joystick & Analog Base Inspector").to_owned(),
+                tr("Customize stick knob, analog base ring, active zone & visibility"),
             )
         } else if let Some(idx) = ed.selected_custom {
             let lbl = tc
@@ -4893,27 +4980,27 @@ pub fn draw_hud_editor(
                 .custom_buttons
                 .get(idx)
                 .map(|b| b.label())
-                .unwrap_or_else(|| "Button".into());
+                .unwrap_or_else(|| tr("Button"));
             if is_mcpe_mode {
                 (
-                    format!("MCPE Custom Button — {lbl}"),
-                    "Exclusive Binding (Keyboard OR Mouse) • Icon, style & geometry",
+                    crate::text::Text::tr("MCPE Custom Button — %s", &[&lbl]).plain(),
+                    tr("Exclusive Binding (Keyboard OR Mouse) • Icon, style & geometry"),
                 )
             } else {
                 (
-                    format!("GoyControl Button — {lbl}"),
-                    "Customize visual style, icon badge, geometry, stroke & events",
+                    crate::text::Text::tr("GoyControl Button — %s", &[&lbl]).plain(),
+                    tr("Customize visual style, icon badge, geometry, stroke & events"),
                 )
             }
         } else if let Some(c) = ed.selected {
             (
-                format!("MCPE Component — {}", c.name()),
-                "Customize style, icon, opacity, shape, stroke & visibility",
+                crate::text::Text::tr("MCPE Component — %s", &[&c.name_t()]).plain(),
+                tr("Customize style, icon, opacity, shape, stroke & visibility"),
             )
         } else {
             (
-                "Component Properties".to_owned(),
-                "Configure control appearance & behavior",
+                tr("Component Properties").to_owned(),
+                tr("Configure control appearance & behavior"),
             )
         };
         let cur_pl = if let Some(idx) = ed.selected_custom {
@@ -4923,12 +5010,15 @@ pub fn draw_hud_editor(
         } else {
             crate::android_controls::Placement::new(0.5, 0.5, 0.12)
         };
-        let telem = format!(
-            "X:{:.0}% Y:{:.0}%  •  Sz:{:.0}%",
-            cur_pl.center[0] * 100.0,
-            cur_pl.center[1] * 100.0,
-            cur_pl.size * 100.0,
-        );
+        let telem = crate::text::Text::tr(
+            "X:%s% Y:%s%  •  Sz:%s%",
+            &[
+                &format!("{:.0}", cur_pl.center[0] * 100.0),
+                &format!("{:.0}", cur_pl.center[1] * 100.0),
+                &format!("{:.0}", cur_pl.size * 100.0),
+            ],
+        )
+        .plain();
 
         // Top Header Bar: [X] Close Button + Circular Double-Ring Preview Badge + Title/Sub + Telemetry Pill + [⛶] Center Snap + Cyan [✓ Done]
         let x_btn = [dx + 12.0, dy + 9.0, 26.0, 26.0];
@@ -4981,7 +5071,7 @@ pub fn draw_hud_editor(
             dy + 23.0,
             (dw - 332.0).max(90.0),
             st_muted,
-            sub_txt,
+            &sub_txt,
         );
 
         // Telemetry Pill + Center-Snap [⛶] Button + Cyan [✓ Done] Button
@@ -5006,7 +5096,7 @@ pub fn draw_hud_editor(
         ui.rounded(
             close_r[0], close_r[1], close_r[2], close_r[3], 13.0, st_cyan,
         );
-        ui.centered_fit(Face::SemiBold, 10.2, close_r, st_cyan_fg, "✓ Done");
+        ui.centered_fit(Face::SemiBold, 10.2, close_r, st_cyan_fg, &tr("✓ Done"));
 
         // Full-Width M3 Workspace Area (single clean top segmented tab bar, no duplicate left rail)
         let wx = dx + 14.0;
@@ -5064,7 +5154,7 @@ pub fn draw_hud_editor(
                         wx + 12.0,
                         body_y + 3.0,
                         st_text,
-                        "STICK KNOB DIMENSIONS & STROKE",
+                        &tr("STICK KNOB DIMENSIONS & STROKE"),
                     );
                     let st_pill_w = 216.0f32.min(ww * 0.46);
                     let st_pill_r = [wx + ww - st_pill_w - 12.0, body_y - 2.0, st_pill_w, 24.0];
@@ -5087,26 +5177,26 @@ pub fn draw_hud_editor(
                     let st_lbl = if tc.settings.control_style == ControlStyle::GoyControl
                         || p_move.use_goy_style
                     {
-                        "● Style: Custom GoyControl Stick ⌄"
+                        tr("● Style: Custom GoyControl Stick ⌄")
                     } else {
-                        "● Style: Default MCPE Stick ⌄"
+                        tr("● Style: Default MCPE Stick ⌄")
                     };
-                    ui.centered_fit(Face::SemiBold, 8.8, st_pill_r, st_cyan, st_lbl);
+                    ui.centered_fit(Face::SemiBold, 8.8, st_pill_r, st_cyan, &st_lbl);
 
                     // 3 Studio Slider Cards + Right Live Component Preview Box with Corner Brackets
                     let cards_y = body_y + 28.0;
                     let card_h = 74.0;
                     for (i, (txt, frac)) in [
                         (
-                            format!("Stick Size|{:.0}%", js.stick_size * 100.0),
+                            format!("{}|{:.0}%", tr("Stick Size"), js.stick_size * 100.0),
                             (js.stick_size - 0.20) / 0.65,
                         ),
                         (
-                            format!("Stick Alpha|{:.0}%", js.stick_opacity * 100.0),
+                            format!("{}|{:.0}%", tr("Stick Alpha"), js.stick_opacity * 100.0),
                             (js.stick_opacity - 0.15) / 0.85,
                         ),
                         (
-                            format!("Stick Stroke|{:.1}dp", js.stick_stroke),
+                            format!("{}|{:.1}dp", tr("Stick Stroke"), js.stick_stroke),
                             js.stick_stroke / 8.0,
                         ),
                     ]
@@ -5178,7 +5268,7 @@ pub fn draw_hud_editor(
                         wx + 22.0,
                         sw_y + 6.0,
                         st_muted,
-                        "STICK COLOR",
+                        &tr("STICK COLOR"),
                     );
                     let sw_d = 20.0;
                     let sw_row_y = sw_y + sw_card_h - sw_d - 7.0;
@@ -5218,7 +5308,7 @@ pub fn draw_hud_editor(
                         8.8,
                         act_r,
                         st_text,
-                        "● Cycle Stick Stroke Col",
+                        &tr("● Cycle Stick Stroke Col"),
                     );
                 }
                 1 => {
@@ -5229,7 +5319,7 @@ pub fn draw_hud_editor(
                         wx + 12.0,
                         body_y + 3.0,
                         st_text,
-                        "ANALOG BASE RING GEOMETRY & INPUT MODE",
+                        &tr("ANALOG BASE RING GEOMETRY & INPUT MODE"),
                     );
                     let mode_pill_w = 186.0f32.min(ww * 0.42);
                     let mode_pill_r = [
@@ -5255,25 +5345,25 @@ pub fn draw_hud_editor(
                         st_cyan,
                     );
                     let mode_txt = if tc.settings.mode == crate::android_controls::Mode::Dpad {
-                        "● Mode: D-Pad ⌄"
+                        tr("● Mode: D-Pad ⌄")
                     } else {
-                        "● Mode: Analog Stick ⌄"
+                        tr("● Mode: Analog Stick ⌄")
                     };
-                    ui.centered_fit(Face::SemiBold, 8.8, mode_pill_r, st_cyan, mode_txt);
+                    ui.centered_fit(Face::SemiBold, 8.8, mode_pill_r, st_cyan, &mode_txt);
 
                     let cards_y = body_y + 28.0;
                     let card_h = 74.0;
                     for (i, (txt, frac)) in [
                         (
-                            format!("Base Alpha|{:.0}%", js.base_opacity * 100.0),
+                            format!("{}|{:.0}%", tr("Base Alpha"), js.base_opacity * 100.0),
                             (js.base_opacity - 0.15) / 0.85,
                         ),
                         (
-                            format!("Base Stroke|{:.1}dp", js.base_stroke),
+                            format!("{}|{:.1}dp", tr("Base Stroke"), js.base_stroke),
                             js.base_stroke / 8.0,
                         ),
                         (
-                            format!("Base Round|{:.0}", js.base_roundness),
+                            format!("{}|{:.0}", tr("Base Round"), js.base_roundness),
                             js.base_roundness / 50.0,
                         ),
                     ]
@@ -5330,7 +5420,7 @@ pub fn draw_hud_editor(
                         wx + 22.0,
                         sw_y + 6.0,
                         st_muted,
-                        "BASE COLOR",
+                        &tr("BASE COLOR"),
                     );
                     let sw_d = 20.0;
                     let sw_row_y = sw_y + sw_card_h - sw_d - 7.0;
@@ -5370,7 +5460,7 @@ pub fn draw_hud_editor(
                         8.8,
                         act_r,
                         st_text,
-                        "● Cycle Base Stroke Col",
+                        &tr("● Cycle Base Stroke Col"),
                     );
                 }
                 _ => {
@@ -5381,11 +5471,13 @@ pub fn draw_hud_editor(
                         wx + 12.0,
                         body_y + 3.0,
                         st_text,
-                        "ACTIVE TOUCH ZONE & VISIBILITY RULES",
+                        &tr("ACTIVE TOUCH ZONE & VISIBILITY RULES"),
                     );
                     let area_y = body_y + 26.0;
                     let hw = (ww - 24.0 - 8.0) * 0.5;
-                    let area_txt = format!("Active Zone: {}", js.move_area.label());
+                    let area_txt =
+                        crate::text::Text::tr("Active Zone: %s", &[&js.move_area.label_t()])
+                            .plain();
                     ui.rounded(wx + 12.0, area_y, hw, 38.0, 11.0, st_card);
                     ui.border(wx + 12.0, area_y, hw, 38.0, 11.0, st_cyan);
                     ui.centered_fit(
@@ -5395,7 +5487,8 @@ pub fn draw_hud_editor(
                         st_text,
                         &area_txt,
                     );
-                    let sz_txt = format!("Joystick Footprint|{:.0}%", p_move.size * 100.0);
+                    let sz_txt =
+                        format!("{}|{:.0}%", tr("Joystick Footprint"), p_move.size * 100.0);
                     let sz_x = wx + 12.0 + hw + 8.0;
                     draw_m3_stepper_cell(
                         &mut ui,
@@ -5440,7 +5533,7 @@ pub fn draw_hud_editor(
                         y6 + 8.0,
                         18.0,
                         p_move.visible_in_game,
-                        "Visible in Game",
+                        &tr("Visible in Game"),
                     );
 
                     let vm_x = wx + 12.0 + third + 4.0;
@@ -5473,7 +5566,7 @@ pub fn draw_hud_editor(
                         y6 + 8.0,
                         18.0,
                         p_move.visible_in_menu,
-                        "Visible in Menu",
+                        &tr("Visible in Menu"),
                     );
 
                     let pv_x = wx + 12.0 + (third + 4.0) * 2.0;
@@ -5484,7 +5577,7 @@ pub fn draw_hud_editor(
                         9.5,
                         [pv_x + 4.0, y6, third - 8.0, 34.0],
                         st_cyan,
-                        "Preset Vis for All",
+                        &tr("Preset Vis for All"),
                     );
                 }
             }
@@ -5520,7 +5613,7 @@ pub fn draw_hud_editor(
                         wx + 12.0,
                         body_y + 3.0,
                         st_text,
-                        "BUTTON STYLE, ICON BADGE & OPACITY",
+                        &tr("BUTTON STYLE, ICON BADGE & OPACITY"),
                     );
                     let is_goy =
                         tc.settings.control_style == ControlStyle::GoyControl || p.use_goy_style;
@@ -5543,11 +5636,11 @@ pub fn draw_hud_editor(
                         st_cyan,
                     );
                     let st_lbl = if is_goy {
-                        "● Style: Static (GoyControl) ⌄"
+                        tr("● Style: Static (GoyControl) ⌄")
                     } else {
-                        "● Style: Default (MCPE) ⌄"
+                        tr("● Style: Default (MCPE) ⌄")
                     };
-                    ui.centered_fit(Face::SemiBold, 8.8, st_pill_r, st_cyan, st_lbl);
+                    ui.centered_fit(Face::SemiBold, 8.8, st_pill_r, st_cyan, &st_lbl);
 
                     let cards_y = body_y + 28.0;
                     let card_h = 74.0;
@@ -5555,7 +5648,7 @@ pub fn draw_hud_editor(
                     draw_m3_stepper_cell(
                         &mut ui,
                         [wx + 12.0, cards_y, cw3, card_h],
-                        &format!("Opacity|{:.0}%", p.opacity * 100.0),
+                        &format!("{}|{:.0}%", tr("Opacity"), p.opacity * 100.0),
                         (p.opacity - 0.15) / 0.85,
                         st_cyan,
                         st_cyan_soft,
@@ -5566,8 +5659,8 @@ pub fn draw_hud_editor(
                     draw_m3_selector_cell(
                         &mut ui,
                         [wx + 12.0 + (cw3 + 8.0), cards_y, cw3, card_h],
-                        "Icon Badge",
-                        icon_lbl,
+                        &tr("Icon Badge"),
+                        &icon_lbl,
                         st_cyan,
                         st_cyan_soft,
                         st_card,
@@ -5577,7 +5670,7 @@ pub fn draw_hud_editor(
                     draw_m3_selector_cell(
                         &mut ui,
                         [wx + 12.0 + (cw3 + 8.0) * 2.0, cards_y, cw3, card_h],
-                        "Hint Label",
+                        &tr("Hint Label"),
                         &cur_hint,
                         st_cyan,
                         st_cyan_soft,
@@ -5636,7 +5729,7 @@ pub fn draw_hud_editor(
                         wx + 22.0,
                         sw_y + 6.0,
                         st_muted,
-                        "BUTTON COLOR",
+                        &tr("BUTTON COLOR"),
                     );
                     let sw_d = 20.0;
                     let sw_row_y = sw_y + sw_card_h - sw_d - 7.0;
@@ -5676,7 +5769,13 @@ pub fn draw_hud_editor(
                         1.3,
                         p.on_click_stroke_color,
                     );
-                    ui.centered_fit(Face::SemiBold, 8.2, clk_r, st_text, "onClick Col (Cycle)");
+                    ui.centered_fit(
+                        Face::SemiBold,
+                        8.2,
+                        clk_r,
+                        st_text,
+                        &tr("onClick Col (Cycle)"),
+                    );
                     ui.rounded(
                         tog_r[0],
                         tog_r[1],
@@ -5694,7 +5793,13 @@ pub fn draw_hud_editor(
                         1.3,
                         p.on_toggle_stroke_color,
                     );
-                    ui.centered_fit(Face::SemiBold, 8.2, tog_r, st_text, "onToggle Col (Cycle)");
+                    ui.centered_fit(
+                        Face::SemiBold,
+                        8.2,
+                        tog_r,
+                        st_text,
+                        &tr("onToggle Col (Cycle)"),
+                    );
                 }
                 1 => {
                     // Button Tab 1: Shape, Stroke, Roundness & Aspect Ratios + Live Preview + Stroke Color Swatches
@@ -5704,7 +5809,7 @@ pub fn draw_hud_editor(
                         wx + 12.0,
                         body_y + 3.0,
                         st_text,
-                        "SHAPE GEOMETRY, STROKE & ASPECT RATIO",
+                        &tr("SHAPE GEOMETRY, STROKE & ASPECT RATIO"),
                     );
                     let sh_pill_w = 192.0f32.min(ww * 0.44);
                     let sh_pill_r = [wx + ww - sh_pill_w - 12.0, body_y - 2.0, sh_pill_w, 24.0];
@@ -5729,19 +5834,23 @@ pub fn draw_hud_editor(
                         8.8,
                         sh_pill_r,
                         st_cyan,
-                        &format!("● Shape: {} ⌄", shape_name(p.shape)),
+                        &crate::text::Text::tr("● Shape: %s ⌄", &[&tr(&shape_name(p.shape))])
+                            .plain(),
                     );
 
                     let cards_y = body_y + 28.0;
                     let card_h = 35.0;
                     for (i, (txt, frac)) in [
                         (
-                            format!("Stroke|{:.1}dp", p.stroke_size),
+                            format!("{}|{:.1}dp", tr("Stroke"), p.stroke_size),
                             p.stroke_size / 8.0,
                         ),
-                        (format!("Roundness|{:.0}", p.roundness), p.roundness / 50.0),
                         (
-                            format!("Shadow|{:.1}dp", p.shadow_size),
+                            format!("{}|{:.0}", tr("Roundness"), p.roundness),
+                            p.roundness / 50.0,
+                        ),
+                        (
+                            format!("{}|{:.1}dp", tr("Shadow"), p.shadow_size),
                             p.shadow_size / 12.0,
                         ),
                     ]
@@ -5764,15 +5873,15 @@ pub fn draw_hud_editor(
                     let row2_y = cards_y + 39.0;
                     for (i, (txt, frac)) in [
                         (
-                            format!("Scale|{:.0}%", p.size * 100.0),
+                            format!("{}|{:.0}%", tr("Scale"), p.size * 100.0),
                             (p.size - 0.05) / 0.39,
                         ),
                         (
-                            format!("Width|{:.0}%", p.width_ratio * 100.0),
+                            format!("{}|{:.0}%", tr("Width"), p.width_ratio * 100.0),
                             (p.width_ratio - 0.50) / 1.50,
                         ),
                         (
-                            format!("Height|{:.0}%", p.height_ratio * 100.0),
+                            format!("{}|{:.0}%", tr("Height"), p.height_ratio * 100.0),
                             (p.height_ratio - 0.50) / 1.50,
                         ),
                     ]
@@ -5843,7 +5952,7 @@ pub fn draw_hud_editor(
                         wx + 22.0,
                         sw_y + 6.0,
                         st_muted,
-                        "STROKE COLOR",
+                        &tr("STROKE COLOR"),
                     );
                     let sw_d = 20.0;
                     let sw_row_y = sw_y + sw_card_h - sw_d - 7.0;
@@ -5870,7 +5979,13 @@ pub fn draw_hud_editor(
                     ];
                     ui.rounded(act_r[0], act_r[1], act_r[2], act_r[3], 10.0, st_inner);
                     ui.stroke_rounded(act_r[0], act_r[1], act_r[2], act_r[3], 10.0, 1.5, st_cyan);
-                    ui.centered_fit(Face::SemiBold, 8.8, act_r, st_text, "Reset Shape & Scale");
+                    ui.centered_fit(
+                        Face::SemiBold,
+                        8.8,
+                        act_r,
+                        st_text,
+                        &tr("Reset Shape & Scale"),
+                    );
                 }
                 _ => {
                     // Button Tab 2: Events, Behavior Toggles & Visibility Checkboxes
@@ -5883,20 +5998,26 @@ pub fn draw_hud_editor(
                         let is_kb = CustomButton::is_keyboard_binding(cur_tok);
                         let is_ms = CustomButton::is_mouse_binding(cur_tok);
                         let kb_lbl = if is_kb {
-                            format!(
-                                "Active: {}",
-                                crate::android_controls::custom::friendly_token_name(cur_tok)
+                            crate::text::Text::tr(
+                                "Active: %s",
+                                &[&crate::android_controls::custom::friendly_token_name(
+                                    cur_tok,
+                                )],
                             )
+                            .plain()
                         } else {
-                            "Inactive (Cleared)".to_owned()
+                            tr("Inactive (Cleared)")
                         };
                         let ms_lbl = if is_ms {
-                            format!(
-                                "Active: {}",
-                                crate::android_controls::custom::friendly_token_name(cur_tok)
+                            crate::text::Text::tr(
+                                "Active: %s",
+                                &[&crate::android_controls::custom::friendly_token_name(
+                                    cur_tok,
+                                )],
                             )
+                            .plain()
                         } else {
-                            "Inactive (Cleared)".to_owned()
+                            tr("Inactive (Cleared)")
                         };
                         let half_w = (ww - 24.0 - 8.0) * 0.5;
                         for (ci, (title, status, active)) in [
@@ -5951,17 +6072,18 @@ pub fn draw_hud_editor(
                                             b.event_slot(slot),
                                         )
                                     })
-                                    .unwrap_or_else(|| "Unassigned".into())
+                                    .unwrap_or_else(|| tr("Unassigned"))
                             } else if let Some(c) = ed.selected {
                                 if slot == 0 {
                                     c.name().to_owned()
                                 } else {
-                                    "Built-in".to_owned()
+                                    tr("Built-in").to_owned()
                                 }
                             } else {
-                                "Unassigned".into()
+                                tr("Unassigned")
                             };
-                            let has_binding = tok_name != "Unassigned" && tok_name != "None";
+                            let has_binding =
+                                tok_name != tr("Unassigned") && tok_name != tr("None");
                             ui.rounded(
                                 ex,
                                 body_y,
@@ -5983,7 +6105,7 @@ pub fn draw_hud_editor(
                                 8.8,
                                 [ex + 4.0, body_y + 4.0, ew - 8.0, 16.0],
                                 if has_binding { st_cyan } else { st_muted },
-                                &format!("EVENT SLOT #{}", slot + 1),
+                                &crate::text::Text::tr("EVENT SLOT #%s", &[&(slot + 1)]).plain(),
                             );
                             ui.centered_fit(
                                 Face::SemiBold,
@@ -6005,38 +6127,38 @@ pub fn draw_hud_editor(
                     for (i, (lbl, on, danger)) in [
                         (
                             if p.passthrough {
-                                "Pass-Thru: ON"
+                                tr("Pass-Thru: ON")
                             } else {
-                                "Pass-Thru: OFF"
+                                tr("Pass-Thru: OFF")
                             },
                             p.passthrough,
                             false,
                         ),
                         (
                             if p.toggleable {
-                                "Mode: Toggle"
+                                tr("Mode: Toggle")
                             } else {
-                                "Mode: Hold"
+                                tr("Mode: Hold")
                             },
                             p.toggleable,
                             false,
                         ),
                         (
                             if p.swipeable {
-                                "Swipe: ON"
+                                tr("Swipe: ON")
                             } else {
-                                "Swipe: OFF"
+                                tr("Swipe: OFF")
                             },
                             p.swipeable,
                             false,
                         ),
                         (
                             if ed.selected_custom.is_some() {
-                                "Delete Button"
+                                tr("Delete Button")
                             } else if is_vis {
-                                "Visible: YES"
+                                tr("Visible: YES")
                             } else {
-                                "Visible: NO"
+                                tr("Visible: NO")
                             },
                             is_vis,
                             ed.selected_custom.is_some(),
@@ -6085,7 +6207,7 @@ pub fn draw_hud_editor(
                             } else {
                                 st_text
                             },
-                            lbl,
+                            &lbl,
                         );
                     }
 
@@ -6120,7 +6242,7 @@ pub fn draw_hud_editor(
                         vy + 5.0,
                         18.0,
                         p.visible_in_game,
-                        "Visible in Game",
+                        &tr("Visible in Game"),
                     );
 
                     let vm_x = wx + 12.0 + third + 4.0;
@@ -6153,7 +6275,7 @@ pub fn draw_hud_editor(
                         vy + 5.0,
                         18.0,
                         p.visible_in_menu,
-                        "Visible in Menu",
+                        &tr("Visible in Menu"),
                     );
 
                     let pv_x = wx + 12.0 + (third + 4.0) * 2.0;
@@ -6164,7 +6286,7 @@ pub fn draw_hud_editor(
                         9.2,
                         [pv_x + 4.0, vy, third - 8.0, 28.0],
                         st_cyan,
-                        "Preset Vis for All",
+                        &tr("Preset Vis for All"),
                     );
                 }
             }
@@ -6189,11 +6311,14 @@ pub fn draw_hud_editor(
             dx + 14.0,
             dy + 10.0,
             text_c,
-            &format!(
-                "Save {} Layout — {}",
-                tc.settings.control_style.label(),
-                tc.settings.preset_name
-            ),
+            &crate::text::Text::tr(
+                "Save %s Layout — %s",
+                &[
+                    &tc.settings.control_style.label_t(),
+                    &tc.settings.preset_name,
+                ],
+            )
+            .plain(),
         );
 
         let discard_r = [dx + dw - 166.0, dy + 8.0, 84.0, 24.0];
@@ -6213,7 +6338,13 @@ pub fn draw_hud_editor(
             7.0,
             danger_c,
         );
-        ui.centered_fit(Face::SemiBold, 9.5, discard_r, danger_c, "Discard & Exit");
+        ui.centered_fit(
+            Face::SemiBold,
+            9.5,
+            discard_r,
+            danger_c,
+            &tr("Discard & Exit"),
+        );
 
         let cancel_r = [dx + dw - 76.0, dy + 8.0, 62.0, 24.0];
         ui.rounded(
@@ -6232,7 +6363,7 @@ pub fn draw_hud_editor(
             7.0,
             border_c,
         );
-        ui.centered_fit(Face::SemiBold, 9.5, cancel_r, text_c, "Cancel");
+        ui.centered_fit(Face::SemiBold, 9.5, cancel_r, text_c, &tr("Cancel"));
 
         // Option A: Replace existing preset (disabled/protected when Default is active)
         let is_def = tc.settings.is_default_preset();
@@ -6263,20 +6394,23 @@ pub fn draw_hud_editor(
             opt_a_r[0] + 10.0,
             opt_a_r[1] + 6.0,
             if is_def { muted_c } else { text_c },
-            if is_def {
-                "Option A: Replace existing preset (Protected)"
+            &if is_def {
+                tr("Option A: Replace existing preset (Protected)")
             } else {
-                "Option A: Replace existing preset"
+                tr("Option A: Replace existing preset")
             },
         );
         let opt_a_sub = if is_def {
-            "Default layout cannot be overwritten. Please create a new preset below.".to_owned()
+            tr("Default layout cannot be overwritten. Please create a new preset below.").to_owned()
         } else {
-            format!(
-                "Update '{}' in controls/{}/",
-                tc.settings.preset_name,
-                tc.settings.control_style.storage_subdir()
+            crate::text::Text::tr(
+                "Update '%s' in controls/%s/",
+                &[
+                    &tc.settings.preset_name,
+                    &tc.settings.control_style.storage_subdir(),
+                ],
             )
+            .plain()
         };
         ui.text(
             Face::Regular,
@@ -6300,10 +6434,10 @@ pub fn draw_hud_editor(
             9.5,
             rep_btn_r,
             if is_def { muted_c } else { accent_fg },
-            if is_def {
-                "Protected"
+            &if is_def {
+                tr("Protected")
             } else {
-                "Replace & Save"
+                tr("Replace & Save")
             },
         );
 
@@ -6314,7 +6448,7 @@ pub fn draw_hud_editor(
             dx + 14.0,
             dy + 86.0,
             accent,
-            "OPTION B: CREATE A NEW PRESET AS...",
+            &tr("OPTION B: CREATE A NEW PRESET AS..."),
         );
         let iy = dy + 100.0;
         let nw = (dw - 28.0 - 8.0) * 0.44;
@@ -6327,9 +6461,9 @@ pub fn draw_hud_editor(
             name_box[1],
             name_box[2],
             name_box[3],
-            "NEW PRESET NAME",
+            &tr("NEW PRESET NAME"),
             ed.save_name_input.as_str(),
-            "Tap to type",
+            &tr("Tap to type"),
             name_focus,
         );
         ui.text_field(
@@ -6337,16 +6471,16 @@ pub fn draw_hud_editor(
             desc_box[1],
             desc_box[2],
             desc_box[3],
-            "DESCRIPTION",
+            &tr("DESCRIPTION"),
             ed.save_desc_input.as_str(),
-            "Tap to type",
+            &tr("Tap to type"),
             !name_focus,
         );
         ui.hint_line(
             dx + 14.0,
             iy + 56.0,
             dw - 28.0,
-            "Tap Name or Desc to type; press Enter, then tap Create New Preset.",
+            &tr("Tap Name or Desc to type; press Enter, then tap Create New Preset."),
             muted_c,
         );
 
@@ -6364,7 +6498,7 @@ pub fn draw_hud_editor(
             10.5,
             create_btn_r,
             accent_fg,
-            "Create New Preset & Save",
+            &tr("Create New Preset & Save"),
         );
 
         ui.finish();
@@ -6422,7 +6556,7 @@ pub fn draw_hud_editor(
             8.0,
             border_c,
         );
-        ui.centered_fit(Face::SemiBold, 10.5, resume_r, accent, "Resume");
+        ui.centered_fit(Face::SemiBold, 10.5, resume_r, accent, &tr("Resume"));
 
         // Row 1: Save Workflow & Reset to Default for Active System
         ui.text(
@@ -6440,8 +6574,8 @@ pub fn draw_hud_editor(
         let ey = dy + 56.0;
         let ew = (dw - 28.0 - 8.0) * 0.5;
         for (i, (title, primary)) in [
-            ("Save Preset (Replace / Save As...)", true),
-            ("Reset Canvas to Default Layout", false),
+            (tr("Save Preset (Replace / Save As...)"), true),
+            (tr("Reset Canvas to Default Layout"), false),
         ]
         .into_iter()
         .enumerate()
@@ -6461,7 +6595,7 @@ pub fn draw_hud_editor(
                 10.0,
                 [rx + 4.0, ey, ew - 8.0, 30.0],
                 if primary { accent_fg } else { text_c },
-                title,
+                &title,
             );
         }
 
@@ -6519,37 +6653,37 @@ pub fn draw_hud_editor(
             dx + 14.0,
             py + 36.0,
             accent,
-            "3. MOVEMENT, JOYSTICK AREA & GRID SNAP",
+            &tr("3. MOVEMENT, JOYSTICK AREA & GRID SNAP"),
         );
         let gy = py + 50.0;
         let gw = (dw - 28.0 - 12.0) / 4.0;
         let move_lbl = match tc.settings.mode {
-            crate::android_controls::Mode::Dpad => "Move: D-Pad",
-            crate::android_controls::Mode::Crosshair => "Move: Joystick",
-            crate::android_controls::Mode::Tap => "Move: Tap Stick",
+            crate::android_controls::Mode::Dpad => tr("Move: D-Pad"),
+            crate::android_controls::Mode::Crosshair => tr("Move: Joystick"),
+            crate::android_controls::Mode::Tap => tr("Move: Tap Stick"),
         };
         let area_lbl = match tc.settings.joystick_style.move_area {
-            JoystickMoveArea::MidBottomLeft => "Area: Mid-Left",
-            JoystickMoveArea::RightSideAnywhere => "Area: Right Side",
-            JoystickMoveArea::AbsoluteFixed => "Area: Fixed",
-            JoystickMoveArea::FollowFinger => "Area: Follow",
+            JoystickMoveArea::MidBottomLeft => tr("Area: Mid-Left"),
+            JoystickMoveArea::RightSideAnywhere => tr("Area: Right Side"),
+            JoystickMoveArea::AbsoluteFixed => tr("Area: Fixed"),
+            JoystickMoveArea::FollowFinger => tr("Area: Follow"),
         };
         for (i, (lbl, on)) in [
             (move_lbl, true),
             (area_lbl, true),
             (
                 if tc.settings.snap_to_grid {
-                    "Grid Snap: ON"
+                    tr("Grid Snap: ON")
                 } else {
-                    "Grid Snap: OFF"
+                    tr("Grid Snap: OFF")
                 },
                 tc.settings.snap_to_grid,
             ),
             (
                 if ed.show_hidden {
-                    "Hidden: SHOWN"
+                    tr("Hidden: SHOWN")
                 } else {
-                    "Hidden: HIDE"
+                    tr("Hidden: HIDE")
                 },
                 ed.show_hidden,
             ),
@@ -6565,7 +6699,7 @@ pub fn draw_hud_editor(
                 9.5,
                 [rx + 3.0, gy, gw - 6.0, 28.0],
                 if on { accent } else { text_c },
-                lbl,
+                &lbl,
             );
         }
     }
@@ -6745,14 +6879,17 @@ pub fn touch_hud_editor(
                                             }
                                             ed.picker_step = PickerStep::None;
                                             ed.status_msg = Some(if is_mcpe {
-                                                format!(
-                                                    "Bound key '{lbl}' (exclusive — mouse binding cleared)."
+                                                crate::text::Text::tr(
+                                                    "Bound key '%s' (exclusive — mouse binding cleared).",
+                                                    &[&lbl],
                                                 )
+                                                .plain()
                                             } else {
-                                                format!(
-                                                    "Assigned key '{lbl}' to Event Slot #{}.",
-                                                    event_slot + 1
+                                                crate::text::Text::tr(
+                                                    "Assigned key '%s' to Event Slot #%s.",
+                                                    &[&lbl, &(event_slot + 1)],
                                                 )
+                                                .plain()
                                             });
                                             tc.clicked = true;
                                             break;
@@ -6876,7 +7013,8 @@ pub fn touch_hud_editor(
                     ed.save_dialog_open = true;
                     ed.editing_save_desc = false;
                     if ed.save_name_input.trim().is_empty() {
-                        ed.save_name_input = format!("{} Custom", tc.settings.preset_name);
+                        ed.save_name_input =
+                            crate::text::Text::tr("%s Custom", &[&tc.settings.preset_name]).plain();
                     }
                     if ed.save_desc_input.trim().is_empty() {
                         ed.save_desc_input = tc.settings.preset_description.clone();
@@ -6929,10 +7067,9 @@ pub fn touch_hud_editor(
             let is_def = tc.settings.is_default_preset();
             if inside([dx + 14.0, dy + 38.0, dw - 28.0, 44.0]) {
                 if is_def {
-                    ed.status_msg = Some(
-                        "Default preset is protected and cannot be replaced. Create a new preset below."
-                            .into(),
-                    );
+                    ed.status_msg = Some(tr(
+                        "Default preset is protected and cannot be replaced. Create a new preset below.",
+                    ));
                     tc.clicked = true;
                     return false;
                 }
@@ -6967,7 +7104,11 @@ pub fn touch_hud_editor(
                     ed.save_name_input.trim().to_owned()
                 };
                 let desc = if ed.save_desc_input.trim().is_empty() {
-                    format!("Custom {} layout", tc.settings.control_style.label())
+                    crate::text::Text::tr(
+                        "Custom %s layout",
+                        &[&tc.settings.control_style.label_t()],
+                    )
+                    .plain()
                 } else {
                     ed.save_desc_input.trim().to_owned()
                 };
@@ -7003,8 +7144,9 @@ pub fn touch_hud_editor(
                     }
                     if inside([dx + 16.0, dy + 138.0, dw - 32.0, 34.0]) {
                         ed.keyboard_request = true;
-                        ed.status_msg =
-                            Some("Press any key on your keyboard to bind it to this slot.".into());
+                        ed.status_msg = Some(tr(
+                            "Press any key on your keyboard to bind it to this slot.",
+                        ));
                         tc.clicked = true;
                         return false;
                     }
@@ -7112,9 +7254,17 @@ pub fn touch_hud_editor(
                             }
                             ed.picker_step = PickerStep::None;
                             ed.status_msg = Some(if is_mcpe {
-                                format!("Bound '{lbl}' (exclusive — keyboard binding cleared).")
+                                crate::text::Text::tr(
+                                    "Bound '%s' (exclusive — keyboard binding cleared).",
+                                    &[&tr(lbl)],
+                                )
+                                .plain()
                             } else {
-                                format!("Assigned '{lbl}' to Event Slot #{}.", event_slot + 1)
+                                crate::text::Text::tr(
+                                    "Assigned '%s' to Event Slot #%s.",
+                                    &[&tr(lbl), &(event_slot + 1)],
+                                )
+                                .plain()
                             });
                             tc.clicked = true;
                             return false;
@@ -7155,7 +7305,7 @@ pub fn touch_hud_editor(
                     let slot = tc.settings.slot(c);
                     tc.settings.layouts[mode_idx][slot].center[0] = 0.5;
                 }
-                ed.status_msg = Some("Centered component horizontally (X = 50%).".into());
+                ed.status_msg = Some(tr("Centered component horizontally (X = 50%)."));
                 let _ = tc.settings.save();
                 tc.clicked = true;
                 return false;
@@ -7391,8 +7541,7 @@ pub fn touch_hud_editor(
                             push_undo_snapshot(&mut ed, &tc.settings);
                             tc.settings.apply_visibility_preset_all();
                             let _ = tc.settings.save();
-                            ed.status_msg =
-                                Some("Applied preset visibility to all controls.".into());
+                            ed.status_msg = Some(tr("Applied preset visibility to all controls."));
                             tc.clicked = true;
                             return false;
                         }
@@ -7743,7 +7892,7 @@ pub fn touch_hud_editor(
                         push_undo_snapshot(&mut ed, &tc.settings);
                         tc.settings.apply_visibility_preset_all();
                         let _ = tc.settings.save();
-                        ed.status_msg = Some("Applied preset visibility to all controls.".into());
+                        ed.status_msg = Some(tr("Applied preset visibility to all controls."));
                         tc.clicked = true;
                         return false;
                     }
@@ -7799,10 +7948,13 @@ pub fn touch_hud_editor(
                 tc.settings.active_mcpe_preset = active_mcpe;
                 tc.settings.active_goy_preset = active_goy;
                 clamp_editor_custom_selection(&mut ed, &tc.settings);
-                ed.status_msg = Some(format!(
-                    "Reset editor canvas to {} Default layout.",
-                    cur_style.label()
-                ));
+                ed.status_msg = Some(
+                    crate::text::Text::tr(
+                        "Reset editor canvas to %s Default layout.",
+                        &[&cur_style.label_t()],
+                    )
+                    .plain(),
+                );
                 tc.clicked = true;
                 return false;
             }
@@ -7890,7 +8042,7 @@ pub fn touch_hud_editor(
                                 tc.settings = prev;
                                 clamp_editor_custom_selection(&mut ed, &tc.settings);
                                 let _ = tc.settings.save();
-                                ed.status_msg = Some("Undid last change.".into());
+                                ed.status_msg = Some(tr("Undid last change."));
                             }
                         }
                         1 => {
@@ -7900,7 +8052,7 @@ pub fn touch_hud_editor(
                                 tc.settings = next;
                                 clamp_editor_custom_selection(&mut ed, &tc.settings);
                                 let _ = tc.settings.save();
-                                ed.status_msg = Some("Redid change.".into());
+                                ed.status_msg = Some(tr("Redid change."));
                             }
                         }
                         2 => {

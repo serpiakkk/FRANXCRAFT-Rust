@@ -11,6 +11,106 @@ use std::{
     },
 };
 
+/// The code that follows the device's language: the player's choice, not a language of its own.
+pub const SYSTEM: &str = "system";
+/// The language the device asks for, as the platform found it ("pt_BR", "en-US").
+static DEVICE_LANGUAGE: RwLock<Option<String>> = RwLock::new(None);
+
+/// The platform tells the game which language the device asks for.
+pub fn set_device_language(code: Option<String>) {
+    *DEVICE_LANGUAGE.write().unwrap_or_else(|e| e.into_inner()) = code;
+}
+
+/// The language the device asks for, as the platform found it.
+pub fn device_language() -> Option<String> {
+    DEVICE_LANGUAGE
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
+/// The language the desktop's environment asks for ("pt_BR.UTF-8", "en_US.UTF-8").
+pub fn environment_language() -> Option<String> {
+    for key in ["LC_ALL", "LC_MESSAGES", "LANG"] {
+        if let Ok(value) = std::env::var(key)
+            && !value.is_empty()
+        {
+            return Some(value);
+        }
+    }
+    None
+}
+
+/// The game's language code for a locale ("pt_BR.UTF-8" → "pt_br", "en-US" → "en_us").
+/// The C and POSIX locales ask for no language of their own.
+pub fn language_of(locale: &str) -> Option<String> {
+    let code = locale
+        .split(['.', '@'])
+        .next()
+        .unwrap_or("")
+        .replace('-', "_")
+        .to_lowercase();
+    let base = code.split('_').next().unwrap_or("");
+    if base.is_empty() || base == "c" || base == "posix" {
+        return None;
+    }
+    Some(if base == code {
+        code
+    } else {
+        format!("{base}_{}", code.split('_').nth(1).unwrap_or(""))
+    })
+}
+
+/// The language a setting names: the device's, when it follows the device.
+/// The language in use, when it is loaded, is the one the device's choice
+/// resolved to ("de" → "de_de").
+pub fn resolve(code: &str) -> String {
+    if code != SYSTEM {
+        return code.to_owned();
+    }
+    if let Some(current) = current() {
+        return current.code.clone();
+    }
+    device_language()
+        .as_deref()
+        .and_then(language_of)
+        .unwrap_or_else(|| DEFAULT.to_owned())
+}
+
+/// The device's locale, as the language list shows it ("pt_BR").
+fn device_region(device: &str) -> String {
+    let Some(code) = language_of(device) else {
+        return String::new();
+    };
+    match code.split_once('_') {
+        Some((base, region)) => format!("{base}_{}", region.to_uppercase()),
+        None => code,
+    }
+}
+
+/// The language of the sources that follows the device: its own, else one of the same
+/// language ("pt" → "pt_br"), else English.
+fn system_language(sources: &[&dyn ResourceSource]) -> Option<String> {
+    let device = device_language()?;
+    let code = language_of(&device)?;
+    // Horizon's own strings carry some languages the prepared root may not.
+    if Bundled
+        .read(&format!("assets/horizon/lang/{code}.json"))
+        .is_some()
+    {
+        return Some(code);
+    }
+    let languages = available(sources);
+    if languages.iter().any(|l| l.code == code) {
+        return Some(code);
+    }
+    let base = code.split('_').next().unwrap_or("");
+    languages
+        .iter()
+        .find(|l| l.code.split('_').next() == Some(base))
+        .map(|l| l.code.clone())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LanguageInfo {
     pub code: String,
@@ -19,9 +119,13 @@ pub struct LanguageInfo {
     pub bidirectional: bool,
 }
 impl LanguageInfo {
-    /// LanguageInfo.toComponent: "Name (Region)".
+    /// LanguageInfo.toComponent: "Name (Region)", or the name alone when it has no region.
     pub fn label(&self) -> String {
-        format!("{} ({})", self.name, self.region)
+        if self.region.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{} ({})", self.name, self.region)
+        }
     }
 }
 #[derive(Default)]
@@ -84,6 +188,9 @@ impl ResourceSource for Bundled {
             }
             "assets/horizon/lang/tr_tr.json" => {
                 include_str!("../../horizon-client/assets/horizon/lang/tr_tr.json")
+            }
+            "assets/horizon/lang/ms_my.json" => {
+                include_str!("../../horizon-client/assets/horizon/lang/ms_my.json")
             }
             "assets/horizon/lang/de_de.json" | "assets/horizon/lang/de_at.json" => {
                 include_str!("../../horizon-client/assets/horizon/lang/de_de.json")
@@ -162,10 +269,16 @@ impl Language {
     /// from every namespace and every source in priority order (later sources
     /// override).
     pub fn load(sources: &[&dyn ResourceSource], code: &str) -> Self {
+        // "system" follows the device's language.
+        let code = if code == SYSTEM {
+            system_language(sources).unwrap_or_else(|| DEFAULT.to_owned())
+        } else {
+            code.to_owned()
+        };
         let mut map = HashMap::new();
-        let mut codes = vec![DEFAULT];
+        let mut codes = vec![DEFAULT.to_owned()];
         if code != DEFAULT {
-            codes.push(code);
+            codes.push(code.clone());
         }
         // Horizon's own strings first, so a pack or the prepared root can still
         // override them. Vanilla has no key for "Controller vibration".
@@ -233,6 +346,18 @@ pub fn available(sources: &[&dyn ResourceSource]) -> Vec<LanguageInfo> {
             bidirectional: false,
         },
     );
+    // The device's language, when the platform found one: the player may follow it.
+    if let Some(device) = device_language() {
+        found.insert(
+            SYSTEM.into(),
+            LanguageInfo {
+                code: SYSTEM.into(),
+                name: get("System"),
+                region: device_region(&device),
+                bidirectional: false,
+            },
+        );
+    }
     for source in sources {
         for path in ["assets/pack.mcmeta", "pack.mcmeta"] {
             let Some(bytes) = source.read(path) else {
@@ -361,6 +486,11 @@ mod tests {
         assert_eq!(en.get("horizon.options.controller"), Some("Controller"));
         let ru = Language::load(&[&empty], "ru_ru");
         assert_eq!(ru.get("horizon.options.controller"), Some("Геймпад"));
+        // Malay, served by Bundled as the others are: its own strings, the
+        // rest in English.
+        let ms = Language::load(&[&empty], "ms_my");
+        assert_eq!(ms.get("horizon.options.vibration"), Some("Getaran"));
+        assert_eq!(ms.get("horizon.options.controller"), Some("Controller"));
         // Every bundled string carries both languages: a key added to one file
         // and forgotten in the other shows as a key name on screen.
         for key in en.map().keys() {
@@ -409,6 +539,76 @@ mod tests {
             es_ve.get("horizon.options.on_screen_keyboard"),
             Some("Teclado en pantalla")
         );
+    }
+
+    /// The device's language is a process-wide setting: the tests that set it
+    /// take turns, and each gives back what it found.
+    static DEVICE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// Runs `f` with the device's language set to `locale`.
+    fn with_device_language<R>(locale: Option<&str>, f: impl FnOnce() -> R) -> R {
+        let _guard = DEVICE.lock().unwrap_or_else(|e| e.into_inner());
+        let before = device_language();
+        set_device_language(locale.map(str::to_owned));
+        let result = f();
+        set_device_language(before);
+        result
+    }
+
+    #[test]
+    fn a_locale_becomes_the_games_language_code() {
+        assert_eq!(language_of("pt_BR.UTF-8").as_deref(), Some("pt_br"));
+        assert_eq!(language_of("pt-BR").as_deref(), Some("pt_br"));
+        assert_eq!(language_of("en_US@euro").as_deref(), Some("en_us"));
+        assert_eq!(language_of("EN").as_deref(), Some("en"));
+        assert_eq!(language_of(""), None);
+        assert_eq!(language_of(".UTF-8"), None);
+        // The C locale asks for no language of its own.
+        assert_eq!(language_of("C.UTF-8"), None);
+        assert_eq!(language_of("POSIX"), None);
+    }
+
+    #[test]
+    fn the_system_language_is_the_devices_own_and_falls_back_to_english() {
+        with_device_language(Some("pt_BR.UTF-8"), || {
+            assert_eq!(resolve("fr_fr"), "fr_fr");
+            // The game loads the device's language, not the name of the choice.
+            let empty = Mem(HashMap::new());
+            let language = Language::load(&[&empty], SYSTEM);
+            assert_eq!(language.code, "pt_br");
+            assert_eq!(language.get("horizon.options.controller"), Some("Controle"));
+        });
+        // A device with no language of its own: English, not a crash.
+        with_device_language(None, || {
+            let empty = Mem(HashMap::new());
+            assert_eq!(Language::load(&[&empty], SYSTEM).code, DEFAULT);
+        });
+    }
+
+    #[test]
+    fn the_system_setting_names_the_language_in_use() {
+        with_device_language(Some("pt_BR.UTF-8"), || {
+            let empty = Mem(HashMap::new());
+            // The language the device's choice resolved to, once it is loaded.
+            let (code, _) = scoped(Language::load(&[&empty], SYSTEM), || resolve(SYSTEM));
+            assert_eq!(code, "pt_br");
+            assert_eq!(resolve("fr_fr"), "fr_fr");
+        });
+    }
+
+    #[test]
+    fn the_language_list_offers_the_devices_language_when_the_platform_found_one() {
+        let empty = Mem(HashMap::new());
+        with_device_language(None, || {
+            let languages = available(&[&empty]);
+            assert!(!languages.iter().any(|l| l.code == SYSTEM));
+        });
+        with_device_language(Some("pt_BR"), || {
+            let languages = available(&[&empty]);
+            let system = languages.iter().find(|l| l.code == SYSTEM).unwrap();
+            assert_eq!(system.region, "pt_BR");
+            assert_eq!(system.label(), format!("{} (pt_BR)", system.name));
+        });
     }
 
     #[test]

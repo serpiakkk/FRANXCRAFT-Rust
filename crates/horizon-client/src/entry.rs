@@ -66,6 +66,11 @@ pub fn start(mods: crate::mod_api::Mods, after_log: impl FnOnce()) {
         ram_limit::start(&home, side);
     }
     after_log();
+    // The language the device asks for, for the option that follows it.
+    #[cfg(target_os = "android")]
+    crate::lang::set_device_language(crate::android::device_language());
+    #[cfg(not(target_os = "android"))]
+    crate::lang::set_device_language(crate::lang::environment_language());
     let renderers = crate::mod_api::mods()
         .iter()
         .filter_map(|m| m.render())

@@ -96,6 +96,22 @@ pub(crate) fn with_activity<R>(
     result.ok()
 }
 
+/// The language the device asks for: the Android locale ("pt_BR", "en-US").
+/// The player may follow it (the `system` language).
+pub fn device_language() -> Option<String> {
+    with_activity(|env, _| {
+        let class = env.find_class("java/util/Locale")?;
+        let locale = env
+            .call_static_method(&class, "getDefault", "()Ljava/util/Locale;", &[])?
+            .l()?;
+        let text = env
+            .call_method(&locale, "toString", "()Ljava/lang/String;", &[])?
+            .l()?;
+        Ok(String::from(env.get_string(&text.into())?))
+    })
+    .flatten()
+}
+
 /// The platform hooks (horizon_client::platform): StarlingActivity's public methods.
 fn open_folder(dir: &Path) -> bool {
     with_activity(|env, activity| {

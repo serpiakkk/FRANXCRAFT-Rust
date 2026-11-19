@@ -566,7 +566,8 @@ impl Settings {
     /// a plugin's messages, chat colours and particles too).
     pub fn client_information(&self, view_distance: i8) -> ClientInformation {
         ClientInformation {
-            language: self.language.clone(),
+            // The language in use, not the choice: the choice may follow the device.
+            language: crate::lang::resolve(&self.language),
             chat_visibility: self.chat_visibility as i32,
             chat_colors: self.chat_colors,
             model_customisation: self.file.model_customisation(),
