@@ -151,6 +151,7 @@ pub mod ticket_levels;
 pub mod title;
 pub mod toasts;
 pub mod touch;
+pub mod touch_slider;
 pub mod ui_theme;
 pub mod vanillagen;
 pub mod win_screen;

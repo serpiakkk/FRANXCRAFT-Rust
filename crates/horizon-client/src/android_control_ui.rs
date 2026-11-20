@@ -778,17 +778,16 @@ impl TouchUi {
         }
         None
     }
-    /// Sliders retain mouse dragging; list rows use scroll-or-tap gestures.
-    pub fn direct_pointer(&mut self, id: u64, p: [f32; 2], phase: TouchPhase, track: bool) -> bool {
-        if phase == TouchPhase::Started
-            && (track
-                || crate::widgets::last_targets().iter().any(|t| {
-                    let [x, y, w, h] = t.rect;
-                    matches!(t.kind, crate::widgets::Kind::Slider { .. })
-                        && (x..x + w).contains(&p[0])
-                        && (y..y + h).contains(&p[1])
-                }))
-        {
+    /// A scrollbar keeps mouse dragging; list rows use scroll-or-tap gestures, and sliders grab
+    /// a touch in `touch_slider`.
+    pub fn direct_pointer(
+        &mut self,
+        id: u64,
+        _p: [f32; 2],
+        phase: TouchPhase,
+        track: bool,
+    ) -> bool {
+        if phase == TouchPhase::Started && track {
             self.pointer_drag = Some(id);
         }
         if self.pointer_drag == Some(id) {

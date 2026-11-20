@@ -8,6 +8,7 @@ use horizon_client::{
     android_control_keyboard::Output,
     android_control_ui::{Action, Gesture},
     debug_keys::KeyAction,
+    touch_slider::{Grab, over_slider},
 };
 use winit::event::{Touch, TouchPhase};
 mod mobile_platform;
@@ -21,6 +22,9 @@ pub(super) struct MobileControls {
     custom_pressed_at: std::collections::HashMap<String, u64>,
     late_custom_releases: Vec<String>,
     hardware_keys: std::collections::HashSet<KeyCode>,
+    pub slider: horizon_client::touch_slider::SliderTouch,
+    /// The slider touch began on the options screen.
+    pub slider_in_options: bool,
     pub touch_shield: bool,
     pub touch_aim: Option<[f32; 2]>,
     pub loaded: bool,
@@ -194,6 +198,7 @@ impl Game<'_> {
     }
     pub(in crate::game) fn mobile_frame(&mut self, events: &dyn super::event_loop::EventLoopCtl) {
         self.mobile_init();
+        self.slider_screen_guard();
         self.mobile.ui.hub_visible = self.mobile.controls.settings.show_control_hub;
         self.mobile.ui.utility_offset_y = if self.screen == Screen::Playing
             && horizon_client::accounts::in_game()
@@ -1695,6 +1700,9 @@ impl Game<'_> {
         self.debug_key(key, KeyAction::Release);
     }
     pub(super) fn android_release_touch_keys(&mut self, cancelled: bool) {
+        if cancelled {
+            self.slider_abort();
+        }
         self.mobile.ui.clear_modifiers();
         if cancelled && matches!(self.screen, Screen::Inventory | Screen::Creative) {
             self.inv_clicks = Default::default();
@@ -1758,8 +1766,25 @@ impl Game<'_> {
         if t.phase == TouchPhase::Started && self.screen == Screen::Options {
             // Starling tracks list and slider presses through its window events.
         }
-        let track = self.on_scrollbar([t.location.x as f32, t.location.y as f32]);
-        let direct = self.mobile.ui.direct_pointer(t.id, p, t.phase, track);
+        let phys = [t.location.x as f32, t.location.y as f32];
+        let track = self.on_scrollbar(phys);
+        let on_slider = !track && over_slider(p);
+        let grab = self.mobile.slider.touch(t.id, phys, t.phase, on_slider);
+        if grab == Grab::Ignore && self.mobile.slider.busy() {
+            // Another finger must not move the cursor of, or release, a slider touch.
+            return;
+        }
+        if grab == Grab::Hold && t.phase == TouchPhase::Started {
+            self.mobile.slider_in_options = self.screen == Screen::Options;
+        }
+        let direct = match grab {
+            Grab::Ignore => self.mobile.ui.direct_pointer(t.id, p, t.phase, track),
+            Grab::Begin | Grab::Drag | Grab::Release => true,
+            Grab::Hold | Grab::Scroll => false,
+        };
+        if grab == Grab::Begin {
+            self.slider_begin(t.id, phys);
+        }
         self.handle_window_event(
             events,
             id,
@@ -1769,19 +1794,29 @@ impl Game<'_> {
             },
             InputOrigin::User,
         );
+        if grab == Grab::Hold {
+            // Lifting a held slider touch is not a tap: the value stays.
+            self.mobile.ui.gesture(t.id, phys, t.phase);
+            self.android_menu_touch_release(t.phase);
+            return;
+        }
         if direct {
-            if t.phase != TouchPhase::Moved {
+            if grab == Grab::Release {
+                self.slider_flush();
+            }
+            let state = match (grab, t.phase) {
+                (Grab::Begin, _) | (_, TouchPhase::Started) => Some(ElementState::Pressed),
+                (_, TouchPhase::Moved) => None,
+                _ => Some(ElementState::Released),
+            };
+            if let Some(state) = state {
                 self.handle_window_event(
                     events,
                     id,
                     WindowEvent::MouseInput {
                         device_id: t.device_id,
                         button: MouseButton::Left,
-                        state: if t.phase == TouchPhase::Started {
-                            ElementState::Pressed
-                        } else {
-                            ElementState::Released
-                        },
+                        state,
                     },
                     InputOrigin::User,
                 );

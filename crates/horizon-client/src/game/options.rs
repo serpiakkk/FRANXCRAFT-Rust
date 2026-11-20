@@ -261,8 +261,13 @@ impl Game<'_> {
         self.watch_pack_folder();
         self.poll_diagnostics();
         self.show_skin_cloud();
+        #[cfg(target_os = "android")]
+        self.slider_tick();
         let mut ui = std::mem::take(&mut self.ui.options);
         let cursor = self.options_pointer(&mut ui);
+        #[cfg(target_os = "android")]
+        self.with_shown_sliders(|g| ui.draw(&g.settings, batch, &g.gui.atlas, cursor));
+        #[cfg(not(target_os = "android"))]
         ui.draw(&self.settings, batch, &self.gui.atlas, cursor);
         self.ui.options = ui;
         self.show_calibration(batch.height);
@@ -428,6 +433,11 @@ impl Game<'_> {
                 Event::SliderDrag => {
                     #[cfg(target_os = "android")]
                     self.mobile_options_apply();
+                    // A finger drag holds a costly value back until it settles (slider_touch).
+                    #[cfg(target_os = "android")]
+                    if self.slider_drag_held() {
+                        continue;
+                    }
                     self.apply_settings();
                 }
                 // Options.createSoundSliderOptionInstance: the preview plays

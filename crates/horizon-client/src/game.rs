@@ -325,6 +325,8 @@ mod shelf;
 mod shield;
 mod shoulders;
 mod sign_edit;
+#[cfg(target_os = "android")]
+mod slider_touch;
 mod sniffers;
 mod social;
 mod spawner;
