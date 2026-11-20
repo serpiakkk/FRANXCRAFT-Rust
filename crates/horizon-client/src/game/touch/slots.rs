@@ -193,7 +193,9 @@ impl Game<'_> {
             && finger == t.id
         {
             let scale = f64::from(self.touch_gui_batch().scale);
-            self.touch.slots.spin += ((t.location.x - last) / scale) as f32 * TURN;
+            // Subtract, as the title player's drag does: a rightward drag lowers the yaw, so the
+            // model's front follows the finger.
+            self.touch.slots.spin -= ((t.location.x - last) / scale) as f32 * TURN;
             self.touch.slots.turning = match t.phase {
                 TouchPhase::Ended | TouchPhase::Cancelled => None,
                 _ => Some((finger, t.location.x)),
