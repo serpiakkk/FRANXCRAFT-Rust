@@ -21610,21 +21610,25 @@ impl Loading {
             // The system's starting window stayed over the app until now (StarlingActivity).
             #[cfg(target_os = "android")]
             crate::android::first_frame_shown();
-            // Not before the first frame: opening the output takes a moment.
-            if self.audio.is_none()
-                && self.failure.is_none()
-                && let Some(registry) = self.sound_registry.take()
-            {
-                let registry = registry.join().unwrap_or_default();
-                let mut audio = Audio::with_registry(&self.vanilla_root, registry);
-                audio.master = self.settings.master_volume;
-                // As Game::apply_ui_settings: the master volume is the engine's own.
-                let mut volumes = self.settings.volumes;
-                volumes[0] = 1.0;
-                horizon_client::settings::set_source_volumes(volumes);
-                audio.sync_volumes();
-                self.audio = Some(audio);
-            }
+        }
+        // Not before the first frame: opening the output takes a moment.
+        if self.shown
+            && self.failure.is_none()
+            && self
+                .sound_registry
+                .as_ref()
+                .is_some_and(JoinHandle::is_finished)
+            && let Some(registry) = self.sound_registry.take()
+        {
+            let registry = registry.join().unwrap_or_default();
+            let mut audio = Audio::with_registry(&self.vanilla_root, registry);
+            audio.master = self.settings.master_volume;
+            // As Game::apply_ui_settings: the master volume is the engine's own.
+            let mut volumes = self.settings.volumes;
+            volumes[0] = 1.0;
+            horizon_client::settings::set_source_volumes(volumes);
+            audio.sync_volumes();
+            self.audio = Some(audio);
         }
     }
     /// Load the resources again (they were imported after a failure): a fresh loader, as at start.
@@ -21643,6 +21647,17 @@ impl Loading {
         // Follow the new generation after the failed startup's result was delivered.
         self.follow_loader(receiver, handle);
         self.failure = None;
+        // The sound events were read from the empty resources at boot (the import's chime may
+        // have opened an output on them since): the output is rebuilt once they are read again.
+        let client = self.options.as_ref().is_some_and(|o| o.dedicated.is_none());
+        if client {
+            // The boot thread has long finished (the load failed); never leave it running beside
+            // the new one, both write the sounds' files.
+            if let Some(old) = self.sound_registry.take() {
+                let _ = old.join();
+            }
+            self.sound_registry = Some(spawn_sound_registry(&self.vanilla_root));
+        }
         log::info!("Horizon: resources imported, loading again");
         Ok(())
     }
@@ -21900,6 +21915,17 @@ fn missing_resources(root: &std::path::Path) -> Option<String> {
     ))
 }
 
+fn spawn_sound_registry(
+    root: &std::path::Path,
+) -> JoinHandle<horizon_client::sound_events::SoundRegistry> {
+    let root = root.to_path_buf();
+    std::thread::spawn(move || {
+        // Starling: a phone's setup before 0.1.6 left the sounds out.
+        horizon_client::preparer::complete_sounds(&root);
+        horizon_client::sound_events::SoundRegistry::load(&root)
+    })
+}
+
 /// The ordinary launch: load the resources on a worker while the window shows
 /// the loading screen, then swap in the game on the main thread.
 fn run_loading(
@@ -21913,14 +21939,10 @@ fn run_loading(
     let (receiver, loader) =
         startup_menu::spawn_loader(&options, &settings, &vanilla_root, started, &progress)?;
     let menu = startup_menu::StartupMenu::new(&options, pack_error.as_deref())?;
-    let sound_registry = options.dedicated.is_none().then(|| {
-        let root = vanilla_root.clone();
-        std::thread::spawn(move || {
-            // Starling: a phone's setup before 0.1.6 left the sounds out.
-            horizon_client::preparer::complete_sounds(&root);
-            horizon_client::sound_events::SoundRegistry::load(&root)
-        })
-    });
+    let sound_registry = options
+        .dedicated
+        .is_none()
+        .then(|| spawn_sound_registry(&vanilla_root));
     let loading = Loading {
         window: None,
         renderer: None,
