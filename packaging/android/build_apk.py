@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
 APPLICATION_ID = "io.github.juanluci.starling"
-LABEL = "Starling"
+LABEL = "FRANXCRAFT Rust"
 # --dev and --preview: an app of its own, installed beside the release (which a build signed with
 # another key cannot install over), with its own folder (StarlingActivity.sharedFolder: StarlingDev,
 # StarlingPreview) and its own sign-in and game files. Preview is what starling-client/starling's
