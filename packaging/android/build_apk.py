@@ -381,7 +381,7 @@ def link_resources(aapt2, android_jar, out, assets, variant, abi=ABI):
         target = res / folder
         target.mkdir(parents=True)
         shutil.copyfile(
-            ROOT / "packaging" / "icons" / "hicolor" / size / "apps" / "horizon.png",
+            HERE / f"franxcraft-{size}.png",
             target / "ic_launcher.png",
         )
     # The window themes (res/: the starting window's icon and background).
